@@ -1,0 +1,186 @@
+From 91b28450b11c9af0f2c04abe803d509abc9a6271 Mon Sep 17 00:00:00 2001
+From: Fernando Fiori <ffiori@microsoft.com>
+Date: Thu, 26 Nov 2026 09:53:01 -0800
+Subject: [PATCH] [M159] [highlights] Build highlight layers from paint markers
+
+Original change's description:
+> [highlights] Build highlight layers from paint markers
+>
+> Editing can move custom highlight markers to a new text node before the
+> per-node registry is rebuilt. Synchronous SVG resource painting can then
+> dereference a missing registry entry.
+>
+> Collect the active highlight names from the markers being painted
+> instead, keeping paint layers consistent with their edges. Retain the
+> per-node cache for hit testing and remove its unsafe paint accessor.
+>
+> Add a regression test that splits highlighted text and computes layers
+> and edges before validation, covering both the new prefix and the
+> original suffix as well as duplicate highlight names.
+>
+> Bug: 589817014
+> Change-Id: Ic0c4f5244d8a89f7b9fdcdc9e70bf8a8d1747eb0
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8854287
+> Commit-Queue: Fernando Fiori <ffiori@microsoft.com>
+> Reviewed-by: Stephen Chenney <schenney@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1753828}
+
+(cherry picked from commit 5b902e8c32ac54fa8ca70335622fba44f8cc6b28)
+
+Bug: 590699208,589817014
+Change-Id: Ic0c4f5244d8a89f7b9fdcdc9e70bf8a8d1747eb0
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8869507
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1914}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ .../core/highlight/highlight_registry.cc      |  6 --
+ .../core/highlight/highlight_registry.h       |  3 +-
+ .../renderer/core/paint/highlight_overlay.cc  | 10 ++-
+ .../core/paint/highlight_overlay_test.cc      | 62 +++++++++++++++++++
+ 4 files changed, 71 insertions(+), 10 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/highlight/highlight_registry.cc b/third_party/blink/renderer/core/highlight/highlight_registry.cc
+index 9437bbf8c0..5893939a05 100644
+--- a/third_party/blink/renderer/core/highlight/highlight_registry.cc
++++ b/third_party/blink/renderer/core/highlight/highlight_registry.cc
+@@ -324,12 +324,6 @@ void HighlightRegistry::TrackReplacedElementForHighlight(
+   add_result.stored_value->value.insert(highlight_name);
+ }
+ 
+-const HashSet<AtomicString>& HighlightRegistry::GetActiveHighlights(
+-    const Text& node) const {
+-  DCHECK(active_highlights_in_node_.Contains(&node));
+-  return active_highlights_in_node_.find(&node)->value;
+-}
+-
+ void HighlightRegistry::ScheduleRepaint() {
+   LocalFrame* frame = GetFrame();
+   if (!frame) {
+diff --git a/third_party/blink/renderer/core/highlight/highlight_registry.h b/third_party/blink/renderer/core/highlight/highlight_registry.h
+index 8aa178c001..80d44d9827 100644
+--- a/third_party/blink/renderer/core/highlight/highlight_registry.h
++++ b/third_party/blink/renderer/core/highlight/highlight_registry.h
+@@ -61,7 +61,6 @@ class CORE_EXPORT HighlightRegistry : public ScriptWrappable,
+   wtf_size_t size() const { return highlights_.size(); }
+ 
+   const HighlightRegistryMap& GetHighlights() const { return highlights_; }
+-  const HashSet<AtomicString>& GetActiveHighlights(const Text& node) const;
+   // Returns the active custom highlight names for a replaced element (e.g.
+   // <img>), or a reference to a static empty set if none.
+   const HashSet<AtomicString>& GetActiveHighlightsForReplacedElement(
+@@ -128,7 +127,7 @@ class CORE_EXPORT HighlightRegistry : public ScriptWrappable,
+   HeapHashSet<WeakMember<RegistryLiveIterator>> active_iterators_;
+   void NotifyIteratorsWillRemoveEntry(HighlightRegistryMapEntry* entry);
+   void NotifyIteratorsWillClear();
+-  // Only valid after ValidateHighlightMarkers(), used to optimize painting.
++  // Only valid after ValidateHighlightMarkers(), used to optimize hit testing.
+   HeapHashMap<WeakMember<const Text>, HashSet<AtomicString>>
+       active_highlights_in_node_;
+   // Replaced elements (e.g. <img>) covered by custom highlight ranges,
+diff --git a/third_party/blink/renderer/core/paint/highlight_overlay.cc b/third_party/blink/renderer/core/paint/highlight_overlay.cc
+index 121441d20f..dffeaa32d3 100644
+--- a/third_party/blink/renderer/core/paint/highlight_overlay.cc
++++ b/third_party/blink/renderer/core/paint/highlight_overlay.cc
+@@ -387,8 +387,14 @@ HeapVector<HighlightLayer> HighlightOverlay::ComputeLayers(
+     unsigned max_custom_layers =
+         std::numeric_limits<uint16_t>::max() -
+         static_cast<unsigned>(HighlightLayerType::kSelection);
+-    const HashSet<AtomicString>& active_highlights =
+-        registry->GetActiveHighlights(*text_node);
++    // Editing can move markers before highlight validation rebuilds the
++    // per-node registry. Use the markers being painted to keep layers and
++    // edges consistent even during synchronous SVG resource painting.
++    HashSet<AtomicString> active_highlights;
++    for (const auto& marker : custom) {
++      active_highlights.insert(
++          To<CustomHighlightMarker>(*marker).GetHighlightName());
++    }
+     auto highlight_iter = active_highlights.begin();
+     unsigned layer_count = 0;
+     while (highlight_iter != active_highlights.end() &&
+diff --git a/third_party/blink/renderer/core/paint/highlight_overlay_test.cc b/third_party/blink/renderer/core/paint/highlight_overlay_test.cc
+index 96a9965c6c..856546484b 100644
+--- a/third_party/blink/renderer/core/paint/highlight_overlay_test.cc
++++ b/third_party/blink/renderer/core/paint/highlight_overlay_test.cc
+@@ -8,6 +8,8 @@
+ #include "third_party/blink/renderer/core/dom/abstract_range.h"
+ #include "third_party/blink/renderer/core/dom/range.h"
+ #include "third_party/blink/renderer/core/dom/text.h"
++#include "third_party/blink/renderer/core/editing/commands/editing_state.h"
++#include "third_party/blink/renderer/core/editing/commands/split_text_node_command.h"
+ #include "third_party/blink/renderer/core/editing/frame_selection.h"
+ #include "third_party/blink/renderer/core/editing/markers/custom_highlight_marker.h"
+ #include "third_party/blink/renderer/core/editing/markers/document_marker_controller.h"
+@@ -138,6 +140,66 @@ TEST_F(HighlightOverlayTest, ComputeLayers) {
+       << "should return kCustom layers no more than once each";
+ }
+ 
++TEST_F(HighlightOverlayTest, ComputeLayersAfterSplittingHighlightedText) {
++  SetBodyInnerHTML(R"HTML(<div contenteditable>abcdef</div>)HTML");
++  auto* text = To<Text>(GetDocument().body()->firstChild()->firstChild());
++  auto* registry = HighlightRegistry::From(*GetDocument().domWindow());
++  auto* foo_range_1 = Range::Create(GetDocument());
++  foo_range_1->setStart(text, 0);
++  foo_range_1->setEnd(text, 1);
++  auto* foo_range_2 = Range::Create(GetDocument());
++  foo_range_2->setStart(text, 2);
++  foo_range_2->setEnd(text, 3);
++  auto* bar_range = Range::Create(GetDocument());
++  bar_range->setStart(text, 4);
++  bar_range->setEnd(text, 6);
++  registry->SetForTesting(AtomicString("foo"),
++                          Highlight::Create(HeapVector<Member<AbstractRange>>{
++                              foo_range_1, foo_range_2}));
++  registry->SetForTesting(
++      AtomicString("bar"),
++      Highlight::Create(HeapVector<Member<AbstractRange>>{bar_range}));
++  UpdateAllLifecyclePhasesForTest();
++
++  SimpleEditCommand* command =
++      MakeGarbageCollected<SplitTextNodeCommand>(text, 4);
++  EditingState editing_state;
++  command->DoApply(&editing_state);
++  ASSERT_FALSE(editing_state.IsAborted());
++  auto* prefix = To<Text>(text->previousSibling());
++  ASSERT_EQ("abcd", prefix->data());
++  ASSERT_EQ("ef", text->data());
++
++  // Synchronous SVG resource painting can run before highlight validation
++  // rebuilds the per-node registry after editing moves markers.
++  PaintController controller;
++  GraphicsContext context(controller);
++  PaintInfo paint_info(context, CullRect(), PaintPhase::kForeground,
++                       /*descendant_painting_blocked=*/false);
++  TextPaintStyle text_style;
++  DocumentMarkerVector none;
++  auto& markers = GetDocument().Markers();
++  for (Text* node : {prefix, text}) {
++    const auto custom = markers.MarkersFor(
++        *node, DocumentMarker::MarkerTypes::CustomHighlight());
++    ASSERT_EQ(node == prefix ? 2u : 1u, custom.size());
++    const auto layers = HighlightOverlay::ComputeLayers(
++        GetDocument(), node, node->GetLayoutObject()->Style(), text_style,
++        paint_info, nullptr, custom, none, none, none, none);
++    EXPECT_EQ(layers,
++              (HeapVector<HighlightLayer>{
++                  HighlightLayer{HighlightLayerType::kOriginating},
++                  HighlightLayer{HighlightLayerType::kCustom,
++                                 AtomicString(node == prefix ? "foo" : "bar")},
++              }));
++    const auto edges = HighlightOverlay::ComputeEdges(
++        node, node->GetLayoutObject(), false,
++        TextOffsetRange{0, node->length()}, layers, nullptr, custom, none, none,
++        none, none);
++    EXPECT_EQ(custom.size() * 2, edges.size());
++  }
++}
++
+ TEST_F(HighlightOverlayTest, ComputeEdges) {
+   // #text "   foo" has two offset mapping units:
+   // • DOM [0,3), text content [1,1)
+-- 
+2.43.0
+
