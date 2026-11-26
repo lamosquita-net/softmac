@@ -26,12 +26,13 @@ Titín instaló la 3.2.2-50 desde la web (APTO).
    PARO (`grep -q` + pipefail) y empaquetar con la misma pública. Luego: Titín sube a pool/ (una vez, `--progress`, sin `-P`),
    aprueba y firma en bak (pruebas → stable) **con FlyWeb 3.2.2-50 abierto**: primera actualización automática
    (`sudo unattended-upgrade -d`, barra de reiniciar). Órdenes de bak: las de `FlyWeb/servidor/apt/README.md`, ya rellenas.
-2. **Correo del código de la cuenta en Linux:** no es de FlyWeb (cliente igual que Mac, 9/9 vectores; correo del servidor bien).
-   Causa casi segura: **cupo de 5 códigos de entrada por cuenta y hora** (`cupos.go`, en memoria) agotado por los reintentos; con
-   contraseña buena y sin cupo responde 200 falso. SERVIDOR-LOCAL lo confirma en el journal de flyweb-sync («tope de correos
-   alcanzado») y da la hora en que se libera; Titín, una sola vez después. Confirmación alternativa: el texto del aviso en sus Mac
-   («ha escrito bien» = cupo; «intentos fallidos» = contraseña). Para después (propuesta a Titín): que el aviso de los Mac
-   explique el caso del cupo sin dar pistas.
+2. **Correo del código de la cuenta en Linux — FALLO DEL SERVIDOR, abierto:** el cliente es igual que Mac (9/9 vectores). En ns2
+   (SERVIDOR, 21:18 Madrid): sin tope de cupo ni errores; entrar/empezar de 21:01:51, 21:14:09 y 21:15:48 sin correo; la de
+   21:16:17 sí salió (250 OK de Gmail). **Titín: la primera contraseña era correcta y sus Mac le preguntaron «¿eras tú?»**, así
+   que hubo KL correcta sin correo: camino silencioso tras el evento acertado (`operaciones.go` 245–293: ¿espera la
+   confirmación de otro equipo?, ¿`emailDe` falla?). SERVIDOR-LOCAL y D8 buscan la causa con la línea; arreglo por PR en
+   `FlyWeb/servidor/sync/` e instalación en ns2 por SERVIDOR con permiso de Titín. No reabrir la «contraseña mala» ni el cupo:
+   los descartó Titín y el registro.
 3. **La próxima versión** (Mac y Linux a la vez: siguiente-3 hasta chromium/0029 + E1 + U3 + cookies + iconos + #1250 + «equipo»):
    número y corte, de Titín.
 4. D8: tres cambios del firmador (SEGURIDAD-PORTES-33: cota superior del Date, llavero de la más alta aunque retirada, aprobación
