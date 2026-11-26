@@ -1,0 +1,24 @@
+name: FlyWeb apt signer
+
+on:
+  push:
+    paths: ["FlyWeb/servidor/apt/**", ".github/workflows/flyweb-apt.yml"]
+  pull_request:
+    paths: ["FlyWeb/servidor/apt/**", ".github/workflows/flyweb-apt.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # Ubuntu 22.04 runner: its gpgv 2.2 is the oldest one the .deb supports, so the signature is checked with it.
+      - name: Signer tests (throwaway v4 key, gpgv cross-check)
+        run: node --version && gpgv --version | head -1 && node FlyWeb/servidor/apt/pruebas/firma-apt.mjs
+      - name: SHA-256 to compare when installing on bak
+        run: sha256sum FlyWeb/servidor/apt/bak/firmar-apt.mjs
