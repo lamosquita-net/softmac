@@ -1,0 +1,118 @@
+From fcfe3afcd7d4bbf8cebf1fa4c1375b049e729742 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 20:55:42 +0000
+Subject: [PATCH] linux: present FlyWeb as flyweb.desktop (WM_CLASS, default
+ browser, icon)
+
+The binary still called itself brave-browser on Linux:
+- GetDesktopName() returned brave-browser[-channel].desktop, which gives
+  WM_CLASS (brave-browser / Brave-browser) and the name passed to
+  xdg-settings, so desktops did not match the window with the package's
+  flyweb.desktop (StartupWMClass=flyweb).
+- IsAnyBraveBrowserDefaultBrowser() looked for brave-browser in the
+  xdg-settings output.
+- GetIconName() (Icon= of generated .desktop files) was brave-browser.
+- PulseAudio named the app brave-browser / Brave.
+
+Now flyweb.desktop (stable and non-official builds, CHROME_DESKTOP still
+overrides the latter), flyweb-{beta,dev,nightly}.desktop for the other
+channels, the default-browser check looks for flyweb, the icon name is
+flyweb (hicolor/*/apps/flyweb.png in the package) and PulseAudio shows
+flyweb / FlyWeb. Linux only.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ .../chrome/browser/shell_integration_linux.cc      |  3 ++-
+ chromium_src/chrome/common/channel_info_posix.cc   | 14 +++++++++-----
+ chromium_src/media/audio/pulse/pulse_util.cc       |  5 +++--
+ ...chrome-browser-shell_integration_linux.cc.patch |  2 +-
+ 4 files changed, 15 insertions(+), 9 deletions(-)
+
+diff --git a/chromium_src/chrome/browser/shell_integration_linux.cc b/chromium_src/chrome/browser/shell_integration_linux.cc
+index f6978020ecf95ff6ff02d28cc0bbd12f0747671f..b9ed5a9078323511cf296b644bc83904bc3c85cc 100644
+--- a/chromium_src/chrome/browser/shell_integration_linux.cc
++++ b/chromium_src/chrome/browser/shell_integration_linux.cc
+@@ -21,7 +21,8 @@ bool IsAnyBraveBrowserDefaultBrowser() {
+   std::string browser;
+   // We don't care about the return value here.
+   base::GetAppOutput(base::CommandLine(argv), &browser);
+-  return browser.find("brave-browser") != std::string::npos;
++  // FlyWeb: flyweb.desktop or flyweb-<channel>.desktop.
++  return browser.find("flyweb") != std::string::npos;
+ }
+ 
+ DefaultWebClientState GetDefaultBrowser() {
+diff --git a/chromium_src/chrome/common/channel_info_posix.cc b/chromium_src/chrome/common/channel_info_posix.cc
+index 82fae37933bbfe09132a62d3139b2b0af53deb35..47098213a5edc5676c77978e3b36b2aab6ec16e4 100644
+--- a/chromium_src/chrome/common/channel_info_posix.cc
++++ b/chromium_src/chrome/common/channel_info_posix.cc
+@@ -53,6 +53,10 @@ std::string GetChannelSuffixForExtraFlagsEnvVarName() {
+ #endif  // BUILDFLAG(IS_LINUX)
+ 
+ #if BUILDFLAG(IS_LINUX)
++// FlyWeb: the .desktop name gives the window class (WM_CLASS «flyweb» /
++// «Flyweb») and is what xdg-settings is asked about; it must match the
++// package (flyweb.desktop, StartupWMClass=flyweb). Other channels:
++// flyweb-<channel>.desktop.
+ std::string GetDesktopName(base::Environment* env) {
+   if (auto brave_snap = env->GetVar("BRAVE_SNAP");
+       brave_snap && *brave_snap == "1") {
+@@ -62,13 +66,13 @@ std::string GetDesktopName(base::Environment* env) {
+   version_info::Channel product_channel(chrome::GetChannel());
+   switch (product_channel) {
+     case version_info::Channel::DEV:
+-      return "brave-browser-dev.desktop";
++      return "flyweb-dev.desktop";
+     case version_info::Channel::BETA:
+-      return "brave-browser-beta.desktop";
++      return "flyweb-beta.desktop";
+     case version_info::Channel::CANARY:
+-      return "brave-browser-nightly.desktop";
++      return "flyweb-nightly.desktop";
+     default:
+-      return "brave-browser.desktop";
++      return "flyweb.desktop";
+   }
+ #else  // defined(OFFICIAL_BUILD)
+   // Allow $CHROME_DESKTOP to override the built-in value, so that development
+@@ -78,7 +82,7 @@ std::string GetDesktopName(base::Environment* env) {
+       !name.empty()) {
+     return name;
+   }
+-  return "brave-browser.desktop";
++  return "flyweb.desktop";
+ #endif
+ }
+ #endif  // BUILDFLAG(IS_LINUX)
+diff --git a/chromium_src/media/audio/pulse/pulse_util.cc b/chromium_src/media/audio/pulse/pulse_util.cc
+index b7f7225459a246d551a46117932c4ebfdff58c7a..798a196b0a10bdb69e0db90ae5f276715f38ce30 100644
+--- a/chromium_src/media/audio/pulse/pulse_util.cc
++++ b/chromium_src/media/audio/pulse/pulse_util.cc
+@@ -3,7 +3,8 @@
+  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+  * You can obtain one at https://mozilla.org/MPL/2.0/. */
+ 
+-constexpr char kBrowserDisplayName[] = "brave-browser";
+-#define PRODUCT_STRING "Brave"
++// FlyWeb: PulseAudio application icon name and stream/context name.
++constexpr char kBrowserDisplayName[] = "flyweb";
++#define PRODUCT_STRING "FlyWeb"
+ #include "src/media/audio/pulse/pulse_util.cc"
+ #undef PRODUCT_STRING
+diff --git a/patches/chrome-browser-shell_integration_linux.cc.patch b/patches/chrome-browser-shell_integration_linux.cc.patch
+index 0caa974f8470e41cbb14af616b13de336e215532..7d1979ea8ab9d130172bbc7bc94497c5beb47b92 100644
+--- a/patches/chrome-browser-shell_integration_linux.cc.patch
++++ b/patches/chrome-browser-shell_integration_linux.cc.patch
+@@ -7,7 +7,7 @@ index 2737375e8233c40682458812afd3614aac056cb8..100b860b111f2b9c6adb4d266845b2cb
+    return "google-chrome";
+  #else  // BUILDFLAG(CHROMIUM_BRANDING)
+ -  return "chromium-browser";
+-+  return "brave-browser";
+++  return "flyweb";
+  #endif
+  }
+  
+-- 
+2.43.0
+
