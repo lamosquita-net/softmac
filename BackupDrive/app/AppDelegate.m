@@ -10,6 +10,7 @@
 #import "AppDelegate.h"
 #import "BDRunner.h"
 #import "BDSetup.h"
+#import "BDActivityWindow.h"
 #import "BDVersionsWindow.h"
 
 static NSString *const kAgentLabel = @"net.lamosquita.backupdrive";
@@ -26,6 +27,7 @@ static const NSTimeInterval kPollSeconds = 2.0;
 @property(strong) NSTask *manualRun;
 @property(strong) BDSetup *setup;
 @property(copy) NSArray<NSDictionary *> *profiles;
+@property(strong) NSMutableDictionary<NSString *, BDActivityWindow *> *activityWindows;
 @property(strong) NSMutableDictionary<NSString *, BDVersionsWindow *> *versionWindows;  // de backupdrive-ctl.sh profile list (nil: aún no)
 @end
 
@@ -580,6 +582,25 @@ static const NSTimeInterval kPollSeconds = 2.0;
   [window reload];
 }
 
+- (void)showActivity:(NSMenuItem *)item {
+  NSDictionary *p = item.representedObject;
+  NSString *local = [self field:@"local" of:p];
+  if (!local.length) return;
+  if (!self.activityWindows) self.activityWindows = [NSMutableDictionary dictionary];
+  BDActivityWindow *window = self.activityWindows[local];
+  if (!window) {
+    __weak AppDelegate *weakSelf = self;
+    window = [[BDActivityWindow alloc] initWithFolder:local
+                                              changed:^{
+                                                [weakSelf refreshProfiles];
+                                              }];
+    self.activityWindows[local] = window;
+  }
+  [NSApp activateIgnoringOtherApps:YES];
+  [window showWindow:nil];
+  [window reload];
+}
+
 - (void)resolveConflicts:(NSMenuItem *)item {
   [self.setup resolveConflictsIn:item.representedObject];
 }
@@ -681,6 +702,8 @@ static const NSTimeInterval kPollSeconds = 2.0;
   open.enabled = [NSFileManager.defaultManager fileExistsAtPath:local];
   NSMenuItem *versions = [self addItem:@"Versiones…" action:@selector(showVersions:) to:sub];
   versions.representedObject = p;
+  NSMenuItem *activity = [self addItem:@"Actividad…" action:@selector(showActivity:) to:sub];
+  activity.representedObject = p;
   NSMenuItem *settings = [self addItem:@"Ajustes de esta carpeta…" action:@selector(folderSettings:) to:sub];
   settings.representedObject = p;
   settings.enabled = !self.isRunning && !self.setup.busy && p[@"days"] != nil;

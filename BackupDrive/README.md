@@ -204,6 +204,9 @@ guiones, `BDSetup.m` los diálogos de conexión y carpetas) que **no sincroniza 
 - **Versiones** (Titín, 03-11: restaurar desde la app): «Versiones…» en cada carpeta abre una ventana con las versiones de
   los dos lados (buscar por nombre, fecha, lado, tamaño); «Restaurar…» la vuelve a poner en su sitio (lo que hubiera va antes
   a versiones) y «Mostrar en el Finder» para las del Mac.
+- **Actividad** (H8, 26-11): «Actividad…» en cada carpeta enseña una línea por pasada (hora, resultado, ficheros subidos
+  y bajados) y, debajo, solo lo **borrado o sobrescrito**, con el lado y la copia que quedó en versiones; «Restaurar…»
+  la recupera. Por terminal: `backupdrive-ctl.sh activity <carpeta> [--limit N]`. Caduca como las versiones de la carpeta.
 - **Ajustes:** «Ajustes de esta carpeta…» (días de versiones y los dos umbrales del freno, con `backupdrive-ctl.sh profile
   set`) y «Abrir al iniciar sesión» (un LaunchAgent propio, `net.lamosquita.backupdrive.app`, que abre la app al entrar).
 
