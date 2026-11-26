@@ -6,9 +6,10 @@ primera publicación (paso 6).
 
 | Dato | Valor |
 |---|---|
-| Huella de la clave principal | *(la apunta Titín al crearla)* |
-| Huella de la subclave de firma (la de bak) | *(ídem)* |
-| **Caducidad de la subclave** | *(ídem; rotar con meses de margen, §4.4 del diseño)* |
+| Huella de la clave principal | `C1A73800D3570C82F18431491C7B292C7F37D941` (Ed25519, solo certificar, sin caducidad; 26-11-2026) |
+| Huella de la subclave de firma (la de bak) | `5F93D81F55B2D87877C69A77F42AD6C8426E03CA` (Ed25519, firma) |
+| **Caducidad de la subclave** | **2028-11-25** (rotar con meses de margen, §4.4 del diseño) |
+| Pública | `clave-publica.asc` (sha256 `4309fbf0…92ba`; en binario, el llavero del .deb: `2b55f2b4…730d`) |
 
 Diseño: `U4-diseno.md` v3 (§3 repositorio, §4 firma). La firma va en bak, como Sparkle (`../actualizaciones`).
 
