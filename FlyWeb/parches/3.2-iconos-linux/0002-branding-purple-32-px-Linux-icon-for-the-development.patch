@@ -1,0 +1,103 @@
+From f8a803c6b478cc02e6c18d75d440f18ad1d25dbf Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 20:54:34 +0000
+Subject: [PATCH] branding: purple 32 px Linux icon for the development channel
+
+product_logo_32_development for Linux (IDR_PRODUCT_LOGO_32_DEVELOPMENT,
+the small window icon) was the orange M2 symbol, while the 128 px one
+and the macOS development app icon (all sizes) use the purple O1-01.
+Make it O1-01 too, downscaled from the 128 px development icon.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ .../linux/product_logo_32_development.png     | Bin 1595 -> 2346 bytes
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+
+diff --git a/app/theme/default_100_percent/brave/linux/product_logo_32_development.png b/app/theme/default_100_percent/brave/linux/product_logo_32_development.png
+index c1cebd12fc4be33393bb3e8696c02cc10e4ba985..dd98f0d75810a917e3d30b4ba17b69734d121e05 100644
+GIT binary patch
+delta 2336
+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
+GLSTZmX@b81
+
+delta 1579
+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
+
+-- 
+2.43.0
+
