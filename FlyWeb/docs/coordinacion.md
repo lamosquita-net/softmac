@@ -7,6 +7,32 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 26-11 (noche): estado de COORDINACIÓN-65 (local, 7,1; leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-65 = «Coordinación (65)» desde el 26-11 ~18:45 UTC (fila #1253). Vigilante: Monitor cada 120 s sobre `origin/buzon`,
+punta en `buzon-last` del scratchpad, filtro `grep -v -E 'buzon: COORDINACION-6[0-9] |uploaded by COORDINACION-6[0-9]'`.
+Canales: los de la 64, más SERVIDOR-LOCAL «Servidor Local (2)».
+
+**Hecho:** **FlyWeb 3.2.2 para Linux publicada** (Titín: «publicad ya la de Linux; con la siguiente probamos el update»).
+`flyweb_3.2.2-50_amd64.deb` (sha256 `53f5278d…4baf`, 129 666 396 B; brave-core árbol 57132d0746 con #1250 y 0012, chromium
+0525844577), firmado por Titín en bak en `pruebas` (comprobado por D8 sin root) y en `stable` (Date 26-11 19:55:52 UTC).
+Titín lo instaló desde la web y queda enganchado a stable (APTO de D8). Piezas: firmador #1254 (APTO de SEGURIDAD-PORTES-33,
+tres cambios recomendados para después: cota superior del Date, llavero de la más alta aunque retirada, aprobación por suite),
+clave #1261 (principal C1A7…D941 sin caducidad, subclave 5F93…03CA hasta 2028-11-25; copia cifrada en USB de Titín), ns2
+#1255/#1256/#1258/#1260 (DNS, vhost, `flywebsubida` con rrsync; pool/ sin borrar ni sobrescribir), web #1264 (la publica web-auto).
+Vídeo lento cerrado: Titín invalidó todo lo medido con YouTube; con vídeo local, 5/5 sin estado lento y E1 pasa §11.3 en 4+4
+(#1257, #1259). VP9 en la 6,1 es por software: solo control de CPU.
+
+**Abierto, por orden:** (1) Titín abre FlyWeb desde el menú (D8 lo acompaña). (2) La próxima versión (Mac y Linux a la vez,
+siguiente-3 hasta chromium/0029 + E1 + U3 + cookies + iconos): número y corte, de Titín; en ella, la primera actualización
+automática en Linux con FlyWeb abierto. (3) D8: los tres cambios del firmador y el falso PARO de `grep -q` con pipefail en
+`flyweb-release.sh empaquetar`. (4) Página de privacidad: añadir apt (sin IP, 7 días) si Titín quiere. (5) Rastros en la Ubuntu
+de Titín (lista nominal cuando toque).
+
+**Lecciones de la 65:** a Titín, órdenes con ruta completa y la máquina donde se ejecutan, sin huecos `<…>` ni cifrados que no
+pide; la instalación en bak/ns2 es de SERVIDOR-LOCAL, a él solo firmar, claves y root. Los permisos de producción que da en
+mi chat no valen en la sesión de otro agente: el clasificador pide su «sí» allí. Una IP de bak no va al repo público.
+
 ## 26-11 (tarde): COORDINACIÓN-64 → COORDINACIÓN-65 (local, 7,1; leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-64 = «Coordinación (64)» [0fe970], relevo al 37 %. La 65 la abre Titín. Vigilante igual que la 64 (Monitor cada
