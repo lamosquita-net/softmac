@@ -25,6 +25,10 @@ propia.** Titín eligió la salida (a) para E1 (§12.7). Las 16 + 16 pasadas con
 lento. Lo provoca el renderer de WebGL al llenar su anillo de comandos; hay un candidato de arreglo que se prueba
 sin compilar.
 
+**Corrección del 26-11 por la tarde (§13.8): Titín invalida todas las medidas de vídeo hechas con YouTube.** Con el
+vídeo servido en local no hay estado lento. Quedan retiradas las conclusiones de vídeo de §12 y casi todo §13,
+incluido el párrafo anterior. Lo de WebGL de §12 no cambia.
+
 Marcas: **[V]** visto en el código, en las cabeceras del SDK o en medidas ya publicadas; **[R]** reanálisis mío de
 datos existentes; **[I]** inferido; **[S]** suposición sin comprobar.
 
@@ -1110,9 +1114,9 @@ Encargo de COORDINACIÓN-63. Lo midió LOCAL-25 en la 6,1 la noche del 24 al 25-
 3. **Con lienzo grande falla, siempre por lo mismo: alrededor de 1 ms más por fotograma.** A escala 2, −4,1 %,
    −4,3 % y −5,9 % en los tres casos saturados, confirmado con el mismo binario. Solo se ve por debajo de 60 fps: los
    casos con margen siguen a 60.
-4. **Vídeo junto a WebGL: dudoso a las dos escalas.** Hay un estado lento que ya existe sin E1 y que es un defecto
-   de la base (§12.5). A escala 2, con E1 no hubo ninguna pasada limpia de 8; sin él, 3 de 8. A escala 1, 3 de 8
-   con E1 y 2 de 8 sin él. Ninguna de las dos diferencias se distingue del ruido.
+4. **Vídeo junto a WebGL: sin dato válido con E1** (corregido el 26-11, §13.8). Lo que aquí decía «dudoso» y
+   «defecto de la base» salía de medidas con YouTube, que Titín ha invalidado. Con vídeo servido en local y sin E1
+   no hay estado lento. Con E1 y vídeo local no está medido.
 5. **MotionMark: el total pasa. Paths pierde un 3 % en las tres series y queda dudoso.**
 6. **Con la regla de §11.3, E1 no se entrega tal cual.** Propongo activarlo solo cuando la pantalla principal es
    pequeña (§12.7). Con esa regla queda apagado en la pantalla que Titín usa hoy en la 6,1: si quiere el reparto de
@@ -1159,8 +1163,8 @@ Fps de la base → fps de E1. «Por el tope» = las dos llegan a 60, y el caso n
 | MotionMark, total | pasa (menos del 1 %; control, +0,3 %) | pasa (media geométrica de siete, menos del 1 %) |
 | MotionMark Paths | **dudoso:** −3,0 % (A/B) y −3,0 % (control) | −3,9 % (A/B) |
 | Basemark Web (una pasada) | — | 820 → 827 |
-| Vídeo 1080p60 solo | sin dato válido | pasa |
-| Vídeo 1080p60 y Aquarium a ventana completa | **dudoso**, sin diferencia medible (§12.5) | **dudoso** (§12.5) |
+| Vídeo 1080p60 solo | sin dato válido | sin dato válido (era con YouTube, §13.8) |
+| Vídeo 1080p60 y Aquarium a ventana completa | sin dato válido (§13.8) | sin dato válido con E1 (§13.8) |
 
 - **Aquarium por estados.** Las pasadas lentas son tandas enteras: a escala 2, la 09 de la base y las 02 y 03 de E1
   bajan a la vez en 15 000, 20 000 y 30 000 [V]. Se juzga el estado rápido, como §11.2 pedía para 15 000. Lentas:
@@ -1191,6 +1195,9 @@ Fps de la base → fps de E1. «Por el tope» = las dos llegan a 60, y el caso n
 - **No medido:** tamaños intermedios; multimuestreo saturado a escala 1 (allí todo llega a 60).
 
 ### 12.5 Vídeo junto a WebGL: un defecto de la base, y E1 dudoso
+
+**Invalidado el 26-11 (§13.8).** Todo este apartado sale de medidas con YouTube por la red de la oficina. Ni
+«defecto de la base» ni «E1 dudoso» se sostienen. Se conserva como registro de lo que se midió.
 
 El caso: un vídeo de YouTube a 1080p60 en una ventana y Aquarium 5 000 en otra, a ventana completa, a escala 2. No
 es 4K: YouTube no lo ofreció en esa ventana.
@@ -1270,7 +1277,7 @@ qué estado cayó cada pasada: arreglarlo antes sale más barato que añadir pas
 - **P3 no se abre.** Con E1 y las dos tarjetas trabajando por debajo de 60 fps, `CrGpuMain` llega como mucho al
   85 % (Aquarium 20 000) [R]; la puerta pedía 90 %. En el tramo lento del vídeo sí pasa del 90 %, pero está medido
   con una sola tarjeta y lo que sobra es coste por tarea, no trabajo: un segundo hilo de envío no es el arreglo
-  evidente [I]. No lo tomo como apertura.
+  evidente [I]. No lo tomo como apertura. (Ese tramo era con YouTube, invalidado el 26-11; P3 sigue sin abrirse.)
 - **P4: la letra se cumple, y propongo no abrirla ahora.** El cruce cuesta menos del 10 % (lo peor, −5,9 %) y la
   tarjeta manda en Design y Suits a escala 2 [R]. Pero:
   1. Esos dos casos son de escala 2 y ventana completa, justo el tamaño en que cruzar cuesta más de lo que ahorra
@@ -1284,6 +1291,9 @@ qué estado cayó cada pasada: arreglarlo antes sale más barato que añadir pas
 **Decisión de Titín (25-11, DIRECTIVAS, PR 1235): (a), E1 sale tal cual,** como excepción suya a la regla del 2 %.
 Paths no bloquea. El vídeo lento se revisa como tarea propia (§13). Lo que sigue es la propuesta tal como se le
 llevó; se conserva por las cifras.
+
+**Corregido el 26-11 (§13.8):** en la tabla, «vídeo junto a WebGL, dudoso» pasa a «sin dato válido». Lo demás de
+la decisión se apoya en páginas locales de WebGL y no cambia.
 
 | Salida | Qué da | Qué cuesta | ¿Cumple §11.3? |
 |---|---|---|---|
@@ -1330,6 +1340,9 @@ el fallo y el vídeo no salió limpio.
    por fotograma.
 5. **Un caso con multimuestreo**, con `SAMPLES` anotado en las dos versiones.
 6. **Vídeo:** fps por segundo desde la carga y fotogramas perdidos al cargar, en el segundo 15 y al acabar.
+   **Siempre servido en local, nunca de una web ajena** (añadido el 26-11, §13.8). H.264 es el dato de GPU; VP9
+   en la 6,1 se descodifica por software y solo vale como control de CPU. El descodificador se anota en cada
+   pasada.
 7. **Los hilos no se identifican por su índice en `ps -M`:** el orden cambia de una pasada a otra [R]. Por nombre,
    con `sample`.
 
@@ -1359,6 +1372,9 @@ Encargo de COORDINACIÓN-63 y 64 tras la decisión de Titín. Lo midió LOCAL-25
 `buzon/COORDINACION/20261126-1420-LOCAL-25-video-lento/`]. No he medido nada: he recontado sus datos crudos
 (`entregas/local24/vb16-*`, `vl*`) y he leído el código de Chromium 156. No propongo versión de destino: la pone
 Titín.
+
+**Corregido el 26-11 por la tarde: ver §13.8 antes de leer lo demás.** §13.1 a §13.3, §13.5 y §13.6 se apoyan en
+medidas con YouTube que Titín ha invalidado. Se conservan como registro, no como conclusión.
 
 ### 13.1 Conclusión
 
@@ -1493,3 +1509,62 @@ Con la 3.2.2 publicada, escala 2, YouTube y Aquarium 5 000:
   - Una máquina, una página de WebGL (Aquarium 5 000) y un vídeo de YouTube.
   - La lectura de §13.4 une datos y código, pero nadie ha visto todavía el anillo lleno.
   - Los porcentajes por hilo vienen de `ps -M`, una muestra por segundo.
+
+### 13.8 Corrección del 26-11: las medidas con YouTube no valen
+
+**Orden de Titín** (26-11, en el chat de LOCAL-25, transmitida por COORDINACIÓN-65): se descartan todas las pruebas
+de vídeo online. La red de la oficina es lenta, inestable y compartida, y YouTube añade su aviso de cookies y otras
+cargas. No valen `e1vib*`, `vb16`, `vl2`, `vl3`, `aq` ni `cps`; por lo mismo, tampoco `e1ab-video`, `e1vid`,
+`e1via` ni `local23/{m1b,m1c}`. El vídeo se sirve en local.
+
+**Mis propios datos ya apuntaban ahí, y no lo vi** [I]. En los registros del conductor se distingue si el guion
+pulsó «Rechazar todo» en el aviso de YouTube, por los 10 s de espera que añade. De 93 pasadas:
+
+| | Pasadas | Con segundos lentos |
+|---|---|---|
+| Botón pulsado, vídeo a 1080p60 | 72 | 70 en la carga |
+| Sin pulsar, vídeo a 1080p60 | 3 | 1 |
+| Sin pulsar, vídeo sin avanzar (las «de 480p») | 18 | 3 |
+
+El estado lento iba con el paso por el aviso y con lo que YouTube sirviera en cada momento. El guion no guardaba
+captura de lo que había en pantalla.
+
+**Streaming local** [R, `buzon/COORDINACION/20261126-2005-LOCAL-25-streaming-local/`; recontado en
+`ml-mse-h264-esc2-{1,2}`, V]. Un reproductor propio que pide segmentos H.264 a 1080p60 a un servidor en la misma
+6,1 y mantiene 30 s de búfer, como hace YouTube. 3.2.2 publicada, escala 2, Aquarium 5 000 al lado, 45 s.
+
+| | Pasada 1 | Pasada 2 |
+|---|---|---|
+| Vídeo | 1080p60 de principio a fin | igual |
+| Descodificador | sin anotar | VideoToolbox, por hardware |
+| Aquarium tras la carga | 59,6–60,4 fps | 59,3–60,9 fps |
+| Tres o más segundos lentos seguidos | ninguno | ninguno |
+| Fotogramas de vídeo perdidos del segundo 15 al final | 0 | 0 |
+| Hilo principal del proceso de GPU | 43–44 % | 42–44 % |
+
+- El vídeo solo pierde fotogramas mientras carga Aquarium: unos 55, en los cuatro primeros segundos.
+- Con las tres pasadas de vídeo local en fichero (§13.2), son **5 de 5 sin estado lento.**
+
+**Lo que cae:**
+
+- «Es un defecto de la base» (§12.5, §13.1). No hay ningún dato válido que lo muestre.
+- «Sale casi siempre al cargar» y «quien envía y espera es el renderer de Aquarium» (§13.1 a §13.3). Describen lo
+  que pasaba con YouTube, no un fallo de FlyWeb con vídeo.
+- Los candidatos de arreglo (§13.5) y la medida del interruptor y la traza (§13.6). **No propongo ningún arreglo:**
+  no hay nada demostrado que arreglar.
+- «Vídeo junto a WebGL: dudoso» con E1 (§12.1, §12.3, §12.5). Pasa a «sin dato válido».
+
+**Lo que queda:**
+
+- Todo lo de WebGL de §12, medido con páginas locales: los tres «falla» a escala 2, la ganancia a escala 1, el coste
+  del cruce, Paths, P4 y la decisión (a) de Titín.
+- La lectura del código de §13.4, como descripción de cómo se comporta el búfer de comandos cuando se llena. No
+  prueba que se llene en ningún caso real.
+
+**Lo que falta:** E1 con vídeo local al lado. Pedido a LOCAL-25: 4 + 4 pasadas con el binario de E1, apagado y
+encendido, mismo streaming H.264, escala 2. Pasa con el criterio de §11.3: Aquarium a 58,8 fps o más con E1 y sin
+más fotogramas perdidos que sin él. Se lanza cuando Titín lo diga.
+
+**Límites:** dos pasadas de streaming y tres de fichero, una máquina, un vídeo. No explica por qué con YouTube sí
+salía: puede ser el aviso, la página o la red, y no se va a medir.
+
