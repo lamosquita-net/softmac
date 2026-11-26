@@ -666,7 +666,7 @@ gemelo M159 `34a2c35b85`), tal cual. **Gravedad no publicada.**
 ## `chromium/0029`: [M159] Highlights, las capas de resaltado salen de los marcadores que se pintan (crbug 589817014)
 
 **`084b5eb0a1`** de la **8154** (26-11 17:53 UTC; bug del merge 590699208; main `5b902e8c32`, #1753828), tal cual
-sobre `0028`. **Gravedad no publicada.** Aún sin merge a la 8078.
+sobre `0028`. **Gravedad no publicada.** Gemelo M156: **`4e52785287`** de la 8078 (26-11 ~21:30 UTC; bug del merge 590700156); pendiente de compararlo cuando la réplica de gitiles lo tenga.
 - **El fallo:**
   - al editar, los marcadores de la CSS Custom Highlight API pueden pasar a un nodo de texto nuevo antes de que se
     reconstruya el registro por nodo de `HighlightRegistry`;
