@@ -31,6 +31,14 @@ SHA-256: <code>0f1abd8f6c03d6df8bf06463b0eae4df65eebb45e2f9fe0b10feedd122eb6ee7<
 copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High Sierra (10.13)?</strong> Tu última versión es la
 <a href="descargas/FlyWeb-1.15.2.dmg">1.15.2</a> (sha256 <code>fbca0533b634a323f839a6265fa9b1802e53e03fcbc500879bbdf0e16cf9f138</code>).</p>
 </div>
+
+<div class="descarga" id="linux">
+<h2>FlyWeb 3.2.2 para Linux</h2>
+<p><a class="boton" href="https://apt.flyweb.lamosquita.net/pool/main/f/flyweb/flyweb_3.2.2-50_amd64.deb" download>Descargar FlyWeb 3.2.2 para Linux (.deb, 130 MB)</a></p>
+<p class="dato">Ubuntu 22.04 o superior y Debian 12 o superior, PC de 64 bits (amd64).<br>
+Al instalarlo se añade el repositorio de FlyWeb, firmado con nuestra clave: las actualizaciones llegan solas con las del sistema.<br>
+SHA-256: <code>53f5278dd936a55e21180cb59f6b45525673bcc664e26d818b50d0ed4a777baf</code></p>
+</div>
 </div></section>
 <section class="banda blanca" id="fin-vuelo"><div class="columna">
 <h2>Cómo instalarlo</h2>
@@ -41,10 +49,19 @@ copia: <a href="ayuda/#actualizar-2-0">lee esto antes</a>. <strong>¿Tienes High
   llavero: pulsa «Permitir siempre».</li>
 </ol>
 
+<h2>Cómo instalarlo en Linux</h2>
+<ol>
+  <li>Descarga <code>flyweb_3.2.2-50_amd64.deb</code> y, en un terminal, en la carpeta donde lo has guardado:
+  <code>sudo apt install ./flyweb_3.2.2-50_amd64.deb</code></li>
+  <li>Ábrelo desde el menú de aplicaciones. Las actualizaciones llegan solas; para buscarlas a mano:
+  <code>sudo apt update &amp;&amp; sudo apt upgrade</code></li>
+</ol>
+
 <h2 id="novedades">Notas de la versión 3.2.2</h2>
 <ul>
   <li><strong>Seguridad:</strong> arreglos de seguridad del motor web, del motor de JavaScript y de las cookies. FlyWeb sigue sobre Chromium 156.0.8078.120.</li>
   <li><strong>Pestañas fijadas compartidas:</strong> arreglos de estabilidad al compartir pestañas fijadas entre ventanas.</li>
+  <li><strong>Linux:</strong> primera versión para Linux, con su repositorio de actualizaciones. En Linux, además, los avisos salen en el naranja de FlyWeb con texto negro y la bienvenida está traducida; en Mac llegará con la próxima versión.</li>
 </ul>
 
 <h2>Notas de la versión 3.2.1</h2>
