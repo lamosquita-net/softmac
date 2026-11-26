@@ -22,7 +22,7 @@ const (
 )
 
 // P1 y P2: alta desde un Mac con cadena; dos Macs nuevos entran con email + contraseña + código y reciben la
-// semilla; el primero ve los eventos y recibe el correo «Se ha añadido el Mac».
+// semilla; el primero ve los eventos y recibe el correo «Se ha añadido el equipo».
 func TestAltaYEntrar(t *testing.T) {
 	b := nuevoBanco(t, nil)
 	a := nuevoMac("Mac de Ana")
@@ -44,12 +44,12 @@ func TestAltaYEntrar(t *testing.T) {
 	b.entregar()
 	anadidos := 0
 	for _, c := range b.buzon.para(emailA) {
-		if strings.Contains(c.cuerpo, "Se ha añadido el Mac «Portátil» (MacPro6,1)") {
+		if strings.Contains(c.cuerpo, "Se ha añadido el equipo «Portátil» (MacPro6,1)") {
 			anadidos++
 		}
 	}
 	if anadidos != 1 {
-		t.Fatal("falta el aviso «Se ha añadido el Mac» por correo")
+		t.Fatal("falta el aviso «Se ha añadido el equipo» por correo")
 	}
 	// La lista, con el token: tres aparatos con su nombre.
 	r := b.conToken(a, "/aparatos/listar", map[string]any{})
@@ -372,7 +372,7 @@ func TestCuposDeCorreo(t *testing.T) {
 	esperar(t, b.deMac(a, "aparatos-quitar", "/aparatos/quitar", map[string]string{"aparato": m.aparato}), 200, "quitar")
 	b.entregar()
 	cs := b.buzon.para(emailA)
-	if len(cs) != n+1 || !strings.Contains(cs[n].cuerpo, "Se ha quitado el Mac «B»") {
+	if len(cs) != n+1 || !strings.Contains(cs[n].cuerpo, "Se ha quitado el equipo «B»") {
 		t.Fatal("el aviso del aparato quitado no llega con los códigos agotados")
 	}
 	// Los avisos se reintentan si el MTA no responde.
