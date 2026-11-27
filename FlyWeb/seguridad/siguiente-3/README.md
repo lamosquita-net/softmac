@@ -790,7 +790,9 @@ El merge **`4488066508`** de la **8154** (27-11 18:24 UTC; bug del merge 5907005
 ## `chromium/0035`: [M159] Lens, el overlay solo toma el foco si su pestaña está activa (crbug 589800523)
 
 El merge **`d7f0bdccf7`** de la **8154** (27-11 20:44 UTC; bug del merge 590348127; main `11b504e0e0`, #1753798), tal cual
-sobre `0034`. **Aún sin merge a la 8078.** **Gravedad no publicada, y no consta que sea de seguridad.**
+sobre `0034`. **Merge M156: `2261efcaf2`** de la 8078 (27-11 21:01 UTC; bug del merge 590348555), con el mismo
+contenido (`git apply -R --check` limpio). **Gravedad no publicada, y no consta que sea de seguridad**; que Google lo
+lleve también a la 156 apunta a que no es solo un arreglo de comportamiento.
 - **El fallo:** `OverlayBaseController::ShowOverlay()` llamaba siempre a `RequestFocus()` sobre el `WebView` del overlay.
   Si el overlay de una pestaña en segundo plano (por ejemplo, en vista dividida) se volvía a mostrar desde
   `TabForegrounded()` sin estar activa, robaba el foco a la pestaña activa y podía disparar, de forma síncrona, los
