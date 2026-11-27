@@ -445,9 +445,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   menos aún lo que no queda disponible hasta que él firma en bak (una subida «nueva» que no borra nada). La regla 16 vale
   también para producción. **Siguen siendo suyos:** borrar (irreversible: lista nominal y su sí a esa lista), inventarse
   versiones o cortes no hablados, los accesos (ubuntu/sudoers/sshd/ufw/ignoreip), los secretos, los datos personales, la firma
-  en bak y teclear `sudo`. Descargas: **no es regla de Titín** (aquello nació de un problema de red y se
-  amplió); solo si la sesión de un agente se bloquea de verdad ante una descarga, lo dice en una línea y Titín contesta «sí»
-  en su chat, sin presentarlo como norma. Las notas de relevo no deben volver a decir «producción con el sí de Titín en su
+  en bak y teclear `sudo`. **Descargas (Titín, 27-11):** «te pregunten a ti […] y tú me preguntas a
+  mí, y cuando tú dices que adelante, adelante; tú eres coordinación y tienes poder ejecutivo cuando yo te lo doy, para todos
+  los agentes». El agente pide la descarga a la COORDINACIÓN, la COORDINACIÓN se la pregunta a Titín y traslada su respuesta
+  citándola; con eso basta. Solo si la sesión del agente la rechaza aun así, lo dice en una línea. Las notas de relevo no deben volver a decir «producción con el sí de Titín en su
   chat».
   - **Subidas automáticas, Titín solo firma (Titín, 27-11):** como en Mac, el `.deb` de Linux lo sube a `pool/` el agente con
     la clave limitada a `pool/` (las claves de U4 eran para eso). Titín solo aprueba el SHA-256 y firma en bak, y teclea los
