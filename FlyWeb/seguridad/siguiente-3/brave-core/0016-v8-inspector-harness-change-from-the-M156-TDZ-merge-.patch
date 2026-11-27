@@ -1,0 +1,82 @@
+From 8609aed613b5dd05227ddf9384efae612c6f40b6 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Fri, 27 Nov 2026 13:16:38 +0000
+Subject: [PATCH] v8: inspector harness change from the M156 TDZ merge
+ (f869a0911b, crbug 587035145)
+
+V8 15.6 merge f869a0911b has the same source change as the M159 port in
+the previous commit, plus a test-only change to
+test/inspector/isolate-data.cc: register a module before instantiating
+it, keep it if evaluation throws, and drop it only if instantiation
+fails. Upstream ships it with the new inspector test
+evaluate-on-call-frame-module-tdz.
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 16 ++++++++++++-
+ .../v8/test-inspector-isolate-data.cc.patch   | 24 +++++++++++++++++++
+ 2 files changed, 39 insertions(+), 1 deletion(-)
+ create mode 100644 patches/v8/test-inspector-isolate-data.cc.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 9082d407..fb2824b0 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,16 @@
++# FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 15.6 merge f869a0911b (crbug 587035145)
++
++SEGURIDAD-PORTES-33, 27-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0016`). V8 15.6 f869a0911b
++(15.6.75.91, 27-11 13:06 UTC), the M156 merge of the fix that `brave-core/0014` ported from M159 (4f37951e9a). Its
++`runtime-scopes.cc` change and the new inspector test are exactly those of `0014` (checked with `git apply -R`).
++
++- The M156 merge also changes the inspector test harness, `test/inspector/isolate-data.cc`: a module is now
++  registered before it is instantiated and stays registered if its evaluation throws; it is removed only if
++  instantiation fails. Before, it was registered only after a successful evaluation. Upstream put it in the 15.6
++  merge with the new test `debugger/evaluate-on-call-frame-module-tdz`. Test-only: it is not built into FlyWeb.
++
++To check (D8-LINUX): inspector `debugger/evaluate-on-call-frame-module-tdz` and `debugger/*`.
++
+ # FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 381fb31a06 (crbug 587212489)
+ 
+ SEGURIDAD-PORTES-33, 27-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0015`). V8 15.9 381fb31a06
+@@ -22,7 +35,8 @@ To check (D8-LINUX): build and run mjsunit `sandbox/regress-587212489` (`--sandb
+ # FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 4f37951e9a (crbug 587035145)
+ 
+ SEGURIDAD-PORTES-33, 27-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0014`). V8 15.9 4f37951e9a
+-(M159, 15.9.128.45, 27-11; bugs 590972031 and 587035145; cherry-pick of main a5a56b7673). No 15.6 merge yet.
++(M159, 15.9.128.45, 27-11; bugs 590972031 and 587035145; cherry-pick of main a5a56b7673). 15.6 merge f869a0911b
++(15.6.75.91, 27-11): same source change; its test-harness change is added by `brave-core/0016`.
+ Adapted to 15.6.75.66: the M159 hunks did not apply because the surrounding code moved (and 15.6 passes `name` to
+ `kConstAssign`); the added and removed lines are the same as upstream's. Severity not published.
+ 
+diff --git a/patches/v8/test-inspector-isolate-data.cc.patch b/patches/v8/test-inspector-isolate-data.cc.patch
+new file mode 100644
+index 00000000..94640d08
+--- /dev/null
++++ b/patches/v8/test-inspector-isolate-data.cc.patch
+@@ -0,0 +1,24 @@
++diff --git a/test/inspector/isolate-data.cc b/test/inspector/isolate-data.cc
++index 49a134bd35c7cebe438f1e61ceacd28337fd1528..97961a23c2e1dd76805996eb0bef696450181775 100644
++--- a/test/inspector/isolate-data.cc
+++++ b/test/inspector/isolate-data.cc
++@@ -164,17 +164,18 @@ void InspectorIsolateData::RegisterModule(v8::Local<v8::Context> context,
++   if (!v8::ScriptCompiler::CompileModule(isolate(), source).ToLocal(&module)) {
++     return;
++   }
+++  modules_[name] = v8::Global<v8::Module>(isolate_.get(), module);
++   if (!module
++            ->InstantiateModule(context,
++                                &InspectorIsolateData::ModuleResolveCallback)
++            .FromMaybe(false)) {
+++    modules_.erase(name);
++     return;
++   }
++   if (evaluate) {
++     v8::Local<v8::Value> result;
++     if (!module->Evaluate(context).ToLocal(&result)) return;
++   }
++-  modules_[name] = v8::Global<v8::Module>(isolate_.get(), module);
++ }
++ 
++ // static
+-- 
+2.43.0
+

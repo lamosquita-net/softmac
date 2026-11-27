@@ -35,6 +35,7 @@ cc68e828c7bda9e4e6b801b53261042f7891c19855b950b7298c0e0db5fa8c22  brave-core/001
 83e3bdf726e2c705f450611a2cf1f0f9f4437b866832b5036aedbbac2a3d5ec0  brave-core/0013-v8-retain-the-enumerator-map-across-the-for-in-enum-.patch
 167d4b56a81655f7c24d87f5340319090a5cb311883960c5fb7a16b6a739cf07  brave-core/0014-v8-TDZ-checks-for-module-bindings-in-lookup-slots-4f.patch
 2654954f847149be38b4f7e4fd4bd3b6f9cd9a47328d62b8352557086e4fe764  brave-core/0015-v8-initialize-the-regexp-capture_name_map-once-381fb.patch
+4c5f135330dd106910bcac42b4bed24b6a389b6d6bb31bd5a4ce3a15de9651fb  brave-core/0016-v8-inspector-harness-change-from-the-M156-TDZ-merge-.patch
 5b8c12b33ee379cb35861145e352f38e47171d49af398720d467bbb5072958ec  chromium/0020-M159-editing-Skip-pseudo-elements-in-AbstractLineBox.patch
 ef8176b6a4363aba654401ea8858b7ee5b7bfeca046ff4979e10864ab2ea4c65  chromium/0021-M159-Use-WeakPtr-in-MirroringActivity-session-startu.patch
 abca565dde28d6c83502ce1798d94000dfb94483975049f215b23d342359738e  chromium/0022-M159-Extensions-Validate-context-and-target-event-in.patch
