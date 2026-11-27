@@ -1,0 +1,119 @@
+From 21440a97bb50ba13c2119858b421c7df0503d7aa Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 27 Nov 2026 13:06:47 +0000
+Subject: [PATCH] version: product version 156.1.99.N in published builds
+
+On Linux the upgrade detector runs the installed binary with
+--product-version and compares it with the running version. Every FlyWeb
+release reported Brave's 156.1.98.63, so an update installed by apt never
+showed the "restart to update" notice.
+
+When FLYWEB_BUILD_NUMBER is set (published builds), apply_patches now
+writes chrome/VERSION as MAJOR.1.99.N, N being the FlyWeb build number
+(the N of CFBundleVersion 198.63.N). BUILD=99 keeps it above every
+156.1.98.x already installed, and N grows with every release. Without
+the variable, development builds keep Brave's version. checkVersionsMatch
+expects the same value, and BUILD.gn asserts that a build with
+flyweb_build_number > 0 carries it.
+
+Nothing declared to websites depends on it (UA and client hints use the
+engine level and flyweb_engine_full_version). On macOS, CFBundleVersion
+(frozen base 198.63.N, what Sparkle compares) and
+CFBundleShortVersionString do not change; the framework's Versions/
+directory takes the new name.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2hjxRPyuefYzGRoZRk
+---
+ BUILD.gn                                  | 12 ++++++++++++
+ build/commands/lib/build.js               |  7 +++++--
+ build/commands/lib/updateChromeVersion.js | 23 ++++++++++++++++++++++-
+ 3 files changed, 39 insertions(+), 3 deletions(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 39bcfac2ca78351c80c695cff1810e6abd975726..1a5621422f3988edd8c2c594893dae311ab7620c 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -14,6 +14,18 @@ import("//tools/grit/repack.gni")
+ import("//tools/v8_context_snapshot/v8_context_snapshot.gni")
+ import("//ui/base/ui_features.gni")
+ 
++# FlyWeb: a published build (flyweb_build_number > 0) must carry the product
++# version 156.1.99.N with the same N (updateChromeVersion.js writes it into
++# chrome/VERSION when FLYWEB_BUILD_NUMBER is set). Without it, Linux shows no
++# "restart to update" notice after an update.
++if (flyweb_build_number > 0) {
++  assert(
++      chrome_version_build == "99" &&
++          chrome_version_patch == "$flyweb_build_number",
++      "chrome/VERSION is $chrome_version_full; run apply_patches with " +
++          "FLYWEB_BUILD_NUMBER=$flyweb_build_number")
++}
++
+ if (enable_library_cdms) {
+   import("//media/cdm/library_cdm/cdm_paths.gni")
+ }
+diff --git a/build/commands/lib/build.js b/build/commands/lib/build.js
+index a4102dd3af5e9f10f77516159481805f75c7f13a..a0afd8b60bd9ac630a76e83aa99c6562d96b392b 100644
+--- a/build/commands/lib/build.js
++++ b/build/commands/lib/build.js
+@@ -13,12 +13,15 @@ const checkVersionsMatch = () => {
+   const re = /MAJOR=(\d+)\s+MINOR=(\d+)\s+BUILD=(\d+)\s+PATCH=(\d+)/
+   const found = versionData.match(re)
+   const braveVersionFromChromeFile = `${found[2]}.${found[3]}.${found[4]}`
+-  if (braveVersionFromChromeFile !== config.braveVersion) {
++  // FlyWeb: a published build writes 1.99.N (updateChromeVersion.js).
++  const expectedVersion = require('./updateChromeVersion')
++    .flywebVersionParts(config.braveVersion.split('.')).join('.')
++  if (braveVersionFromChromeFile !== expectedVersion) {
+     // Only a warning. The CI environment will choose to proceed or not within its own script.
+     Log.warn(
+       `Version files do not match!\n` +
+       `src/chrome/VERSION: ${braveVersionFromChromeFile}\n` +
+-      `brave-core configured version: ${config.braveVersion}\n` +
++      `brave-core configured version: ${expectedVersion}\n` +
+       `Did you forget to sync?`)
+   }
+ }
+diff --git a/build/commands/lib/updateChromeVersion.js b/build/commands/lib/updateChromeVersion.js
+index e4d80726935bbb9c01a75524e5eb1af7b394fd13..d284c47cfcfb75a7aa8abcea915d8c4b57425f50 100644
+--- a/build/commands/lib/updateChromeVersion.js
++++ b/build/commands/lib/updateChromeVersion.js
+@@ -9,8 +9,28 @@ const fs = require('fs')
+ const path = require('path')
+ const Log = require('./logging')
+ 
++// FlyWeb: in a published build (FLYWEB_BUILD_NUMBER set, as flyweb-release.sh
++// and build.sh do), the product version is 156.1.99.N, with N the FlyWeb build
++// number (the same N as CFBundleVersion 198.63.N). It has to grow with every
++// release: on Linux the upgrade detector compares the installed binary's
++// --product-version with the running one, and with Brave's 1.98.63 it never
++// changed (156.1.98.63), so no "restart to update" notice was shown. BUILD=99
++// keeps it above every 156.1.98.x already installed. Nothing declared to
++// websites comes from here (UA and client hints use the engine level and
++// flyweb_engine_full_version). Without the variable (development builds),
++// Brave's version as before.
++function flywebVersionParts(braveVersionParts) {
++  const n = process.env.FLYWEB_BUILD_NUMBER
++  if (n === undefined || n === '') {
++    return braveVersionParts
++  }
++  assert(/^[0-9]{1,5}$/.test(n) && Number(n) > 0 && Number(n) <= 65535,
++    `FLYWEB_BUILD_NUMBER must be 1..65535, got "${n}"`)
++  return [braveVersionParts[0], '99', String(Number(n))]
++}
++
+ function updateChromeVersion() {
+-  const braveVersionParts = config.braveVersion.split('.')
++  const braveVersionParts = flywebVersionParts(config.braveVersion.split('.'))
+   assert(braveVersionParts.length == 3)
+ 
+   const versionFilePath = path.join(config.srcDir, 'chrome', 'VERSION')
+@@ -57,3 +77,4 @@ function updateChromeVersion() {
+ }
+ 
+ module.exports = updateChromeVersion
++module.exports.flywebVersionParts = flywebVersionParts
+-- 
+2.43.0
+

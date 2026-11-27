@@ -154,7 +154,8 @@ parches() {
   local r s
   while read -r r s; do [ -z "$r" ] || aplicar "$CORE" "$r" "$s"; done <<< "$(todas core_parche)"
   identidad
-  (cd "$CORE" && npm run apply_patches) > "$L/parches.log" 2>&1 || { tail -20 "$L/parches.log" >&2; paro "apply_patches"; }
+  # FLYWEB_BUILD_NUMBER: chrome/VERSION = 156.1.99.$BUILD (parches/3.2-version-producto; aviso de reiniciar en Linux).
+  (cd "$CORE" && FLYWEB_BUILD_NUMBER="$BUILD" npm run apply_patches) > "$L/parches.log" 2>&1 || { tail -20 "$L/parches.log" >&2; paro "apply_patches"; }
   while read -r r s; do [ -z "$r" ] || aplicar "$SRC" "$r" "$s"; done <<< "$(todas chromium_parche)"
   igual "V8 con parches" "$(arbol_v8)" "$(de v8_arbol)"
   # Enums numerados de Blink (MOTOR-41; build.sh lo hace tras apply_patches): corta antes de horas de compilación.
