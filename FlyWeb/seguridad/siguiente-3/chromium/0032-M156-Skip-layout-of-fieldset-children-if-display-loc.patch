@@ -1,0 +1,116 @@
+From 35043e9f7b9e2a4a921cbaec11ad8bf4dc50fbe4 Mon Sep 17 00:00:00 2001
+From: Morten Stenshorne <mstensho@chromium.org>
+Date: Fri, 27 Nov 2026 01:02:17 -0800
+Subject: [PATCH] [M156] Skip layout of fieldset children if display-locked.
+
+Original change's description:
+> Skip layout of fieldset children if display-locked.
+>
+> BlockNode::FirstChild() doesn't return any children if display-locked,
+> but fieldsets are special and use GetFieldsetContent() and
+> GetRenderedLegend() instead of that. Add guards.
+>
+> We *could* add a guard before attempting child layout in the fieldset
+> algorithm, too, but that would suggest that all algorithms would have to
+> worry about this, which isn't necessary. See crrev.com/c/8831561
+>
+> Bug: 589815787
+> Change-Id: I226ecd64ec739f9478bb0693b346a9cb64633ed9
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8852595
+> Auto-Submit: Morten Stenshorne <mstensho@chromium.org>
+> Reviewed-by: Ian Kilpatrick <ikilpatrick@chromium.org>
+> Commit-Queue: Ian Kilpatrick <ikilpatrick@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1753359}
+
+(cherry picked from commit b9836c7432f2146632c49ce0033578f4e6b8bdfe)
+
+Bug: 590348142,589815787
+Change-Id: I226ecd64ec739f9478bb0693b346a9cb64633ed9
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8871839
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2452}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../blink/renderer/core/layout/block_node.cc    |  6 ++++++
+ .../layout/forms/fieldset_layout_algorithm.cc   | 14 ++++++++------
+ .../crashtests/fieldset-with-shadowroot.html    | 17 +++++++++++++++++
+ 3 files changed, 31 insertions(+), 6 deletions(-)
+ create mode 100644 third_party/blink/web_tests/external/wpt/css/css-contain/content-visibility/crashtests/fieldset-with-shadowroot.html
+
+diff --git a/third_party/blink/renderer/core/layout/block_node.cc b/third_party/blink/renderer/core/layout/block_node.cc
+index 1570260623..fa43931d8c 100644
+--- a/third_party/blink/renderer/core/layout/block_node.cc
++++ b/third_party/blink/renderer/core/layout/block_node.cc
+@@ -1212,6 +1212,9 @@ LayoutInputNode BlockNode::FirstChild() const {
+ BlockNode BlockNode::GetRenderedLegend() const {
+   if (!IsFieldsetContainer())
+     return nullptr;
++  if (ChildLayoutBlockedByDisplayLock()) {
++    return nullptr;
++  }
+   return BlockNode(
+       LayoutFieldset::FindInFlowLegend(*To<LayoutBlock>(box_.Get())));
+ }
+@@ -1219,6 +1222,9 @@ BlockNode BlockNode::GetRenderedLegend() const {
+ BlockNode BlockNode::GetFieldsetContent() const {
+   if (!IsFieldsetContainer())
+     return nullptr;
++  if (ChildLayoutBlockedByDisplayLock()) {
++    return nullptr;
++  }
+   return BlockNode(
+       To<LayoutFieldset>(box_.Get())->FindAnonymousFieldsetContentBox());
+ }
+diff --git a/third_party/blink/renderer/core/layout/forms/fieldset_layout_algorithm.cc b/third_party/blink/renderer/core/layout/forms/fieldset_layout_algorithm.cc
+index 8824edf753..967220a43f 100644
+--- a/third_party/blink/renderer/core/layout/forms/fieldset_layout_algorithm.cc
++++ b/third_party/blink/renderer/core/layout/forms/fieldset_layout_algorithm.cc
+@@ -225,12 +225,14 @@ BreakStatus FieldsetLayoutAlgorithm::LayoutChildren() {
+   // all live inside an anonymous child box of the fieldset container.
+   if (content_break_token || !has_seen_all_children) {
+     BlockNode fieldset_content = Node().GetFieldsetContent();
+-    DCHECK(fieldset_content);
+-    BreakStatus break_status =
+-        LayoutFieldsetContent(fieldset_content, content_break_token,
+-                              adjusted_padding_box_size, !!legend);
+-    if (break_status == BreakStatus::kNeedsEarlierBreak) {
+-      return break_status;
++    DCHECK(fieldset_content || Node().ChildLayoutBlockedByDisplayLock());
++    if (fieldset_content) {
++      BreakStatus break_status =
++          LayoutFieldsetContent(fieldset_content, content_break_token,
++                                adjusted_padding_box_size, !!legend);
++      if (break_status == BreakStatus::kNeedsEarlierBreak) {
++        return break_status;
++      }
+     }
+   }
+ 
+diff --git a/third_party/blink/web_tests/external/wpt/css/css-contain/content-visibility/crashtests/fieldset-with-shadowroot.html b/third_party/blink/web_tests/external/wpt/css/css-contain/content-visibility/crashtests/fieldset-with-shadowroot.html
+new file mode 100644
+index 0000000000..9873feab91
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/css/css-contain/content-visibility/crashtests/fieldset-with-shadowroot.html
+@@ -0,0 +1,17 @@
++<!DOCTYPE html>
++<link rel="help" href="https://issues.chromium.org/issues/589815787">
++<fieldset id="fieldset">
++  <div id="host">
++    <template shadowrootmode="open">
++      <div style="position:absolute; position-try-fallbacks:flip-inline;"></div>
++      <slot id="slot"></slot>
++    </template>
++  </div>
++</fieldset>
++<script>
++  document.body.offsetTop;
++  host.shadowRoot.getElementById('slot').style.color = 'red';
++  fieldset.style.contentVisibility = 'hidden';
++  document.body.offsetTop;
++  fieldset.style.cssText = 'width: 500px';
++</script>
+-- 
+2.43.0
+

@@ -11,17 +11,17 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0012` | **`1a7e31cd26`** (hasta `0011`: `fdee71cc91`; hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0031` | **`7462abed8a`** (hasta `0030`: `8e3f45e0fa`; hasta `0029`: `397104853a`; hasta `0028`: `9333257cbd`; hasta `0027`: `b1aa075097`; hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0014` | **`5c4feeb327`** (hasta `0013`: `2e2ad230d2`; hasta `0012`: `1a7e31cd26`; hasta `0011`: `fdee71cc91`; hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0032` | **`d11aeeddb0`** (hasta `0031`: `7462abed8a`; hasta `0030`: `8e3f45e0fa`; hasta `0029`: `397104853a`; hasta `0028`: `9333257cbd`; hasta `0027`: `b1aa075097`; hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 | Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6`, con `0026`, `f3c3d7fba8`, con `0027`, `b1aa075097`, con `0028`, `9333257cbd`, con `0029`, `397104853a` (con la versión M159 de `0029`, que ya no se usa, daba `73c4b20769`) con `0030`, `8e3f45e0fa` y, con `0031`, `7462abed8a`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6`, con `0026`, `f3c3d7fba8`, con `0027`, `b1aa075097`, con `0028`, `9333257cbd`, con `0029`, `397104853a` (con la versión M159 de `0029`, que ya no se usa, daba `73c4b20769`) con `0030`, `8e3f45e0fa`, con `0031`, `7462abed8a` y, con `0032`, `d11aeeddb0`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
-`90d7c52725`; con `0005`, `84c41ddbec`; con `0006`, `4576659642`; con `0007`, `51fa7840a8`; con `0008`, `277835ca26`; con `0009`, `8ad838f115`; con `0010`, `8dc666451e`; con `0011`, `fdee71cc91`; y con `0012`, `1a7e31cd26`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
+`90d7c52725`; con `0005`, `84c41ddbec`; con `0006`, `4576659642`; con `0007`, `51fa7840a8`; con `0008`, `277835ca26`; con `0009`, `8ad838f115`; con `0010`, `8dc666451e`; con `0011`, `fdee71cc91`; con `0012`, `1a7e31cd26`; con `0013`, `2e2ad230d2`; y con `0014`, `5c4feeb327`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
 `a52e854758`; el parche aplica igual en los dos.
@@ -734,6 +734,19 @@ M159 `3d3935ca`), tal cual sobre `0030`. **Gravedad no publicada.**
 - **Aplica a Mac.** **Para LOCAL:** `blink_unittests --gtest_filter='InlineLayoutAlgorithmTest.*:LineBreakerTest.*'` y la
   WPT nueva.
 
+## `chromium/0032`: [M156] Blink, el *layout* de un `fieldset` no entra en sus hijos si está bloqueado por *display lock* (crbug 589815787)
+
+El merge **`c05f0c54bb`** de la **8078** (27-11 09:02 UTC; bug del merge 590348142; main `b9836c7432`, #1753359; gemelo
+M159 8154 `1a3e847a61`), tal cual sobre `0031`. **Gravedad no publicada.**
+- **El fallo:**
+  - con *display lock* (por ejemplo, `content-visibility: hidden`), `BlockNode::FirstChild()` no devuelve hijos;
+  - pero el `fieldset` es especial y llega a los suyos con `GetFieldsetContent()` y `GetRenderedLegend()`, que no
+    miraban el bloqueo. El algoritmo de `fieldset` podía así maquetar hijos que no debía tocar.
+- **El arreglo:** los dos devuelven nulo si `ChildLayoutBlockedByDisplayLock()`, y `FieldsetLayoutAlgorithm` solo maqueta el
+  contenido si existe. Prueba nueva: la WPT `css/css-contain/content-visibility/crashtests/fieldset-with-shadowroot.html`.
+- **Sin adaptación:** es el propio merge M156. Brave no toca estos ficheros.
+- **Aplica a Mac.** **Para LOCAL:** la WPT nueva y `blink_unittests --gtest_filter='*Fieldset*'`.
+
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
 Puerto del merge **`1faf157db2`** de V8 15.9.128.34. **Gravedad no publicada; es una salida del sandbox de V8.**
@@ -944,7 +957,7 @@ publicada.**
 
 **`1941d806d2`** de V8 **15.6** (27-11 08:01 UTC; bug del merge 586790592; main `686ea5103e`; gemelo M159 `4ac3021e1e`,
 15.9.128.43). Entra tal cual sobre la 15.6.75.66. `js-call-reducer.cc` ya tenía parche de FlyWeb, lejos de este trozo, y
-su blob de partida coincide con el del merge. **Gravedad no publicada.** Aún no hay roll de V8 a la 8078.
+su blob de partida coincide con el del merge. **Gravedad no publicada.** La 8078 ya rueda V8 a 15.6.75.89, con este merge, en `473601d703` (27-11 09:01 UTC).
 - **El fallo:**
   - el `Array.prototype.sort` que TurboFan mete en línea no tenía *checkpoint* entre las cabeceras del bucle y la
     llamada a `comparefn`;
@@ -960,6 +973,43 @@ su blob de partida coincide con el del merge. **Gravedad no publicada.** Aún no
   40 → 41 de `0001`.
 - **Aplica a Mac.** **Para D8-LINUX:** mjsunit `regress/wasm/regress-585624824` (con `--turbofan`), `compiler/*`,
   `wasm/*` y `regress/*`.
+
+## `brave-core/0013`: [M156] V8, Maglev y Turbolev mantienen vivo el mapa del enumerador al leer la caché de `for-in` (crbug 590253989)
+
+**`a2c4c5c9dd`** de V8 **15.6** (15.6.75.90, 27-11 09:03 UTC; bug del merge 590971898; main `8a6bd48d91`; gemelo M159
+`b10dd63a16`, 15.9.128.44). Entra tal cual sobre la 15.6.75.66. `maglev-graph-builder.cc` y `maglev-ir.h` ya tenían
+parche de FlyWeb, sin conflicto; los blobs de partida de los siete ficheros coinciden con los del merge. **Gravedad no
+publicada.** Aún no hay roll de V8 a la 8078 con él.
+- **El fallo, una lectura fuera de límites en el código optimizado:** en Maglev y Turbolev, la lectura de la caché de
+  enumeración de `for-in` (`VisitForInNext`) no mantenía vivo el mapa del enumerador. Si ese mapa se recogía, el GC podía
+  recortar la caché, y los accesos siguientes leían fuera de ella. TurboFan ya tenía el arreglo.
+- **El arreglo:** un nodo nuevo de Maglev, `Retain`, mantiene vivo el mapa durante la lectura. Turbolev lo baja al `Retain`
+  de Turboshaft, y un mapa constante se retiene en el objeto de código. Pruebas nuevas: `mjsunit/maglev/regress-590253989.js`
+  y `mjsunit/turbolev/regress-590253989.js`.
+- **Montaje:** en `v8t` sobre `c2e26ed0aa`, el árbol queda en `9531c8efc0`. Se regeneran 7 `.patch` (5 nuevos y 2 que se
+  amplían). Sin cambio de bytecode.
+- **Aplica a Mac.** **Para D8-LINUX:** las dos pruebas nuevas (con sus banderas), `maglev/*` y `turbolev/*`, con y sin
+  `--maglev`.
+
+## `brave-core/0014`: [M159] V8, comprobación TDZ de los *bindings* de módulo en las búsquedas dinámicas (crbug 587035145)
+
+**`4f37951e9a`** de V8 **15.9** (15.9.128.45, 27-11 09:13 UTC; bug del merge 590972031; main `a5a56b7673`). **Aún sin
+merge a la 15.6.** **Gravedad no publicada.**
+- **El fallo:**
+  - debug-evaluate (evaluar en un *frame* pausado desde DevTools) compila los identificadores libres como búsquedas
+    dinámicas;
+  - si una resolvía a un *import* o *export* de módulo, `LoadLookupSlot` devolvía el valor de la celda sin comprobar la
+    TDZ: leer un *binding* sin inicializar daba el `TdzHole` como valor. `StoreLookupSlot` también escribía en *bindings*
+    aún sin inicializar.
+- **El arreglo:** las dos lanzan `ReferenceError` (`kNotDefined`), como ya hacía el camino de las ranuras de contexto. Prueba
+  nueva del inspector: `debugger/evaluate-on-call-frame-module-tdz`.
+- **Adaptación a la 15.6:** los trozos de la M159 no aplicaban porque el código de alrededor se ha movido, y la 15.6 pasa
+  `name` a `kConstAssign`. Se han puesto a mano: las líneas añadidas y quitadas son las mismas que en upstream (comprobado
+  con `diff`). En `v8t` el árbol queda en `06395c7d6d`. Se regeneran el `.patch` de `runtime-scopes.cc` (ya tenía parche de
+  FlyWeb, de `0008`) y los dos de la prueba. Sin cambio de bytecode.
+  - La salida esperada de la prueba viene de la 15.9 y puede necesitar retoque en la 15.6.
+- **Aplica a Mac.** **Para D8-LINUX:** inspector `debugger/evaluate-on-call-frame-module-tdz` y `debugger/*`, y mjsunit
+  `modules-*`.
 
 ## Pruebas para LOCAL y D8-LINUX
 
