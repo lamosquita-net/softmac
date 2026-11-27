@@ -27,7 +27,7 @@ del cuerpo HTTP; `cuenta`, el id de la cuenta que el Mac conoce
 (vacío en `alta/confirmar` y `empezar-de-cero/confirmar`; en `eventos` y `aparatos/renovar` se acepta vacío
 también, y la cuenta la fija la cadena: S1). Referencia: `FirmarPrueba` en `prueba.go`.
 
-**Token de aparato**: `Authorization: Bearer <token>`; solo sirve para `eventos` y `aparatos/listar`. Caduca a los
+**Token de aparato**: `Authorization: Bearer <token>`; solo sirve para `eventos`, `aparatos/listar` y `aparatos/modelo`. Caduca a los
 180 días sin uso; se invalida al cambiar la contraseña, la clave o con «No he sido yo» (se saca otro con
 `aparatos/renovar`, la prueba de cadena y el secreto del aparato).
 
@@ -58,6 +58,7 @@ guion, espacios y minúsculas).
 | `aparatos/quitar` | prueba `aparatos-quitar` | `aparato` | `{}` |
 | `aparatos/renovar` | prueba `aparatos-renovar` | `aparato secreto` (sin el secreto, 403), o `modelo nombre` para darse de alta (Mac unido con las 24 palabras; avisa) | `cuenta aparato token [secreto, solo al darse de alta]` |
 | `aparatos/renombrar` | prueba `aparatos-renombrar` | `aparato nombre` | `{}` |
+| `aparatos/modelo` | token | `modelo` (cambia solo el del aparato del token; sin correo ni evento) | `{}` |
 | `eventos` | token o prueba `eventos` (si vienen las dos, cuenta la prueba) | `desde` (último `n` leído) | `estado [cuenta] [email, solo con prueba: S2] [borrado] eventos: [n tipo fecha datos]` |
 | `no-he-sido-yo` | prueba `no-he-sido-yo` | `{}` | `{}` |
 | `cuenta/borrar` | prueba `cuenta-borrar` | `{}` | `{}` |
