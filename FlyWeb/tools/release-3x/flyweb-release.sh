@@ -23,6 +23,8 @@
 #
 # Entorno (también como claves del manifiesto; la variable manda):
 #   FLYWEB_DEPOT_TOOLS / depot_tools=   carpeta de depot_tools que se pone delante en el PATH (autoninja, ninja, gn)
+#   clave_servicios_fichero=            fichero con la clave de servicios (BraveServiceKey), que el servidor de
+#                                       componentes exige; sin él la clave se queda en «flyweb» y gn y compilar paran
 #   BAJA=1 / baja=1                     prioridad baja al compilar: taskpolicy -b + nice 19 (Mac) o nice 19 (Linux), y
 #                                       trabajos_baja (24 por defecto). Sin BAJA, al máximo: trabajos (32 Mac, 12 Linux).
 set -u -o pipefail
@@ -197,6 +199,8 @@ args_de_gn() {
 
 brave_build() {  # <registro> [opciones de npm run build]
   local log=$1 a; shift
+  # Con «flyweb» components.flyweb.lamosquita.net/extensions da 403 y Shields no baja listas (3.2.2-51 en Linux).
+  [ -n "$CLAVE" ] && [ "$CLAVE" != flyweb ] || paro "sin clave de servicios: falta clave_servicios_fichero o está vacío"
   args_de_gn
   local orden=(npm run build -- Release -C "$NOMBRE" --target_arch=x64)
   for a in "${A[@]}"; do orden+=(--gn "$a"); done
