@@ -445,9 +445,17 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   menos aún lo que no queda disponible hasta que él firma en bak (una subida «nueva» que no borra nada). La regla 16 vale
   también para producción. **Siguen siendo suyos:** borrar (irreversible: lista nominal y su sí a esa lista), inventarse
   versiones o cortes no hablados, los accesos (ubuntu/sudoers/sshd/ufw/ignoreip), los secretos, los datos personales, la firma
-  en bak y teclear `sudo`. Única excepción técnica: **descargar ficheros** exige el sí en el chat del agente que descarga (límite
-  de cada sesión); no se extiende a nada más. Las notas de relevo no deben volver a decir «producción con el sí de Titín en su
+  en bak y teclear `sudo`. Descargas: **no es regla de Titín** (aquello nació de un problema de red y se
+  amplió); solo si la sesión de un agente se bloquea de verdad ante una descarga, lo dice en una línea y Titín contesta «sí»
+  en su chat, sin presentarlo como norma. Las notas de relevo no deben volver a decir «producción con el sí de Titín en su
   chat».
+  - **Subidas automáticas, Titín solo firma (Titín, 27-11):** como en Mac, el `.deb` de Linux lo sube a `pool/` el agente con
+    la clave limitada a `pool/` (las claves de U4 eran para eso). Titín solo aprueba el SHA-256 y firma en bak, y teclea los
+    `sudo` de su Ubuntu.
+  - **Avisos de intento fallido con el equipo (Titín, 27-11; próxima versión, con el tema de correos y avisos):** el aviso y
+    el correo de contraseña incorrecta dicen desde qué equipo vino, con el identificador que ya se lee (MacPro6,1,
+    «MSI B760 GAMING PLUS WIFI MS-7D98»), además de la hora. Sin IP. Preparan SERVIDOR-LOCAL (servidor) y D8-LINUX (cliente);
+    revisa MOTOR-47.
 - **Código de la cuenta: era Spam de Gmail; arreglos preparados, no en la 3.2.2-51 (Titín, 26-11 noche; COORDINACIÓN-66):** el
   servidor envió los códigos de las 21:16 y las 21:29 (250 OK; SPF, DKIM y DMARC pasan); Gmail los retrasó y los dejó en Spam.
   «Déjalo preparado para cuando añadamos los parches»: la 3.2.2-51 sale solo con «equipo», `DeviceModel()` sin nombre de
