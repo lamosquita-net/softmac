@@ -439,6 +439,15 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   Para agentes nuevos de la nube, el método preferido es **un agente por tarea** con encargo escrito, que se releva solo si
   la tarea es larga; si la COORDINACIÓN local no puede abrirlos, deja el texto y los abre Titín. Pasar todo a Ubuntu: no.
 - **COORDINACIÓN en local y sin cartero (Titín, 21-11 noche, «sí, las dos»; propuesta de ARQUITECTURA, #1184):** la COORDINACIÓN se queda en la MacPro7,1 y **el cartero se retira**. Ajustes: (1) toda orden con contenido a un local va también por escrito en `buzon/<PAPEL>/` con su línea en `ENTREGADO.md`; (2) la COORDINACIÓN hace `git fetch` de `buzon` al empezar cada turno (el vigilante de 30 min es solo ayuda); (3) se vigila la rama `buzon` entera, no solo `buzon/COORDINACION/`. Horas con `date -u`. Se revisa al cerrar la 3.2.1.
+- **El flujo de las aprobaciones: Titín acuerda con la COORDINACIÓN y ella traslada (Titín, 27-11; COORDINACIÓN-66; lo ha
+  tenido que repetir varias veces):** «yo hablo contigo, coordinación, llegamos a un acuerdo y tú trasladas». Lo acordado con la
+  COORDINACIÓN **no se le vuelve a preguntar** en el chat de ningún agente: subir, publicar, instalar o escribir en ns1/ns2, y
+  menos aún lo que no queda disponible hasta que él firma en bak (una subida «nueva» que no borra nada). La regla 16 vale
+  también para producción. **Siguen siendo suyos:** borrar (irreversible: lista nominal y su sí a esa lista), inventarse
+  versiones o cortes no hablados, los accesos (ubuntu/sudoers/sshd/ufw/ignoreip), los secretos, los datos personales, la firma
+  en bak y teclear `sudo`. Única excepción técnica: **descargar ficheros** exige el sí en el chat del agente que descarga (límite
+  de cada sesión); no se extiende a nada más. Las notas de relevo no deben volver a decir «producción con el sí de Titín en su
+  chat».
 - **Código de la cuenta: era Spam de Gmail; arreglos preparados, no en la 3.2.2-51 (Titín, 26-11 noche; COORDINACIÓN-66):** el
   servidor envió los códigos de las 21:16 y las 21:29 (250 OK; SPF, DKIM y DMARC pasan); Gmail los retrasó y los dejó en Spam.
   «Déjalo preparado para cuando añadamos los parches»: la 3.2.2-51 sale solo con «equipo», `DeviceModel()` sin nombre de
