@@ -31,6 +31,7 @@ a407276aa22ed7b31886d06c90bd6ed9b0ba3c3d45a65f9397246d11d362aac7  libvpx/0001-vp
 b784b0ecffeb250308f87f1e35a4bb16b57da65c936f0b4c79be5172e4928c98  skia/0001-M156-ganesh-Drop-mask-domain-in-SoftwarePathRenderer.patch
 0c79a9b8f88ec7a0ba89c264a7baaf5f43f4339719c6b6cdc978005f6e99a603  brave-core/0010-v8-compare-fp-against-BackupIncumbentScope-4faa529e5.patch
 cc68e828c7bda9e4e6b801b53261042f7891c19855b950b7298c0e0db5fa8c22  brave-core/0011-v8-respect-kTaggedPointer-in-SimplifiedLowering-2a15.patch
+8364d629b02c4011863b460d3f56b892b6f3bb9fc62cc9fa8ef1cc7097eef02a  brave-core/0012-v8-checkpoint-before-the-comparefn-call-in-inlined-s.patch
 5b8c12b33ee379cb35861145e352f38e47171d49af398720d467bbb5072958ec  chromium/0020-M159-editing-Skip-pseudo-elements-in-AbstractLineBox.patch
 ef8176b6a4363aba654401ea8858b7ee5b7bfeca046ff4979e10864ab2ea4c65  chromium/0021-M159-Use-WeakPtr-in-MirroringActivity-session-startu.patch
 abca565dde28d6c83502ce1798d94000dfb94483975049f215b23d342359738e  chromium/0022-M159-Extensions-Validate-context-and-target-event-in.patch

@@ -11,7 +11,7 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0011` | **`fdee71cc91`** (hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
+| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0012` | **`1a7e31cd26`** (hasta `0011`: `fdee71cc91`; hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
 | chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0031` | **`7462abed8a`** (hasta `0030`: `8e3f45e0fa`; hasta `0029`: `397104853a`; hasta `0028`: `9333257cbd`; hasta `0027`: `b1aa075097`; hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 | Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
@@ -21,7 +21,7 @@ Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a un
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
-`90d7c52725`; con `0005`, `84c41ddbec`; con `0006`, `4576659642`; con `0007`, `51fa7840a8`; con `0008`, `277835ca26`; con `0009`, `8ad838f115`; con `0010`, `8dc666451e`; y con `0011`, `fdee71cc91`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
+`90d7c52725`; con `0005`, `84c41ddbec`; con `0006`, `4576659642`; con `0007`, `51fa7840a8`; con `0008`, `277835ca26`; con `0009`, `8ad838f115`; con `0010`, `8dc666451e`; con `0011`, `fdee71cc91`; y con `0012`, `1a7e31cd26`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
 `a52e854758`; el parche aplica igual en los dos.
@@ -940,6 +940,27 @@ publicada.**
 - **Aplica a Mac.** **Para D8-LINUX y LOCAL:** mjsunit (`compiler/*`, `regress/*`) y `unittests` `*SimplifiedLowering*` y
   `*RepresentationChange*`.
 
+## `brave-core/0012`: [M156] V8, el `sort` que TurboFan mete en línea hace *checkpoint* antes de llamar a `comparefn` (crbug 585624824)
+
+**`1941d806d2`** de V8 **15.6** (27-11 08:01 UTC; bug del merge 586790592; main `686ea5103e`; gemelo M159 `4ac3021e1e`,
+15.9.128.43). Entra tal cual sobre la 15.6.75.66. `js-call-reducer.cc` ya tenía parche de FlyWeb, lejos de este trozo, y
+su blob de partida coincide con el del merge. **Gravedad no publicada.** Aún no hay roll de V8 a la 8078.
+- **El fallo:**
+  - el `Array.prototype.sort` que TurboFan mete en línea no tenía *checkpoint* entre las cabeceras del bucle y la
+    llamada a `comparefn`;
+  - las desoptimizaciones anticipadas que se añaden al bajar esa llamada (por ejemplo, la conversión de argumentos de un
+    `comparefn` de Wasm metido en línea) usaban el estado de antes del `sort`. Al desoptimizar, el `sort` volvía a
+    empezar cuando las llamadas anteriores a `comparefn` ya habían tenido efectos (por ejemplo, acortar el array).
+- **El arreglo:** un `Checkpoint` con la continuación desde la instantánea del `sort`
+  (`SortContinueFromSnapshotEagerFrameState`) justo antes de la llamada. Prueba nueva:
+  `mjsunit/regress/wasm/regress-585624824.js`.
+- **Montaje:** el merge aplicado en `v8t` sobre `92df3849a4` da el árbol `c2e26ed0aa`. Se regeneran con
+  `git diff --full-index 917584bd HEAD -- <fichero>` el `.patch` de `js-call-reducer.cc` (se amplía) y el de la prueba
+  (nuevo). Sección arriba en `patches/v8/FLYWEB-SECURITY.md`. No cambia el bytecode, así que vale la subida de época
+  40 → 41 de `0001`.
+- **Aplica a Mac.** **Para D8-LINUX:** mjsunit `regress/wasm/regress-585624824` (con `--turbofan`), `compiler/*`,
+  `wasm/*` y `regress/*`.
+
 ## Pruebas para LOCAL y D8-LINUX
 
 **D8-LINUX-6, `brave-core/0007`–`0009` en verde** (25-11, `buzon/COORDINACION/20261125-1530-D8-LINUX-6-d8-bc0007-0009.md`,
@@ -1027,6 +1048,7 @@ configuración de Linux compila el código.
 |---|---|---|---|
 | 8078 `97c8484b2c` [M156] | 577371305 | `ExternalVkImageBacking`: `ProduceGL()` falla si el backing guarda un `NativePixmap`, y la conversión a `NativePixmap` pasa antes, de modo que la creación falla si no se puede | **Sí se compila:** `external_vk_image_backing.cc` está en `gpu/command_buffer/service/BUILD.gn` bajo `enable_vulkan` y `is_linux \|\| is_fuchsia`. `enable_vulkan` es `true` por defecto en Linux y FlyWeb no lo cambia. **En la práctica casi no se usa:** Vulkan va apagado por defecto en Linux (`features::kVulkan`, `FEATURE_DISABLED_BY_DEFAULT` fuera de Android). Además, según el propio commit, el backing con `NativePixmap` solo se da en Fuchsia. |
 | 8154 `605bc384c4` [M159] (main #1755087) | 589323186 | `WaylandToplevelWindow` iteraba los *bubbles* hijos mientras los ocultaba, y el delegado podía modificar el vector durante la iteración. Ahora rechaza activar *bubbles* mientras oculta la ventana. Adaptado en la 159 (`Hide()`/`ActivateBubble()`) | **Sí se compila:** `build/config/ozone.gni` pone `ozone_platform_wayland = true` en Linux (con `ozone_auto_platforms`) y FlyWeb no lo cambia. Solo actúa en sesiones Wayland. |
+| 8078 `8994ad8cd9` [M156] (main `34e6041497`, #1754219; gemelo M159 8154 `0305d454cf`) | 584204083 | `AXTree`: los dos nodos de anuncio extra (`extra_announcement_nodes_`) apuntan a la raíz del árbol. Al cambiar o quitar la raíz, esta se liberaba antes de borrarlos y quedaban punteros colgantes. Ahora se detecta el cambio de raíz en `ComputePendingChanges()` y se borran dentro de `Unserialize()` antes de liberar la raíz | **Sí se compila:** `ui/accessibility/ax_tree.cc` va en todas las plataformas. Todo lo que cambia está bajo `BUILDFLAG(IS_LINUX) \|\| BUILDFLAG(IS_WIN)`, igual que la creación de esos nodos (`AXTree::CreateExtraAnnouncementNodes`, y su llamada en `ax_node.cc`). En Mac no existen: no cambia nada. |
 
 ## Revisados y no aplicables
 
