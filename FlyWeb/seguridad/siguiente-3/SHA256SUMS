@@ -42,3 +42,4 @@ a7cb85633792a4733b5f1878388157a21a74c049a28a0c6e32efc81dad08aebd  chromium/0027-
 2d42e272bb5950e4fa04348f7340f3eccb1d4bffb15d08e2cf0ce3127c651372  chromium/0028-M156-IndexedDB-fix-within-transaction-Blob-key-compa.patch
 30c9acc94a2858dcf80725381c0772b6bad5121f3fe2cf824fe63f7e2f405998  chromium/0029-M156-highlights-Build-highlight-layers-from-paint-ma.patch
 ce0b7559fba7fa3f364d3678ed2bf081ccd098dbc362cadad1de2128744cde6e  chromium/0030-M159-Catch-V8-exceptions-in-CSS-paint-and-layout-wor.patch
+7be57a637a9aadea6b3e513461ae64b72029df9e6042f074fe3ecf963a24c7d8  chromium/0031-M156-floats-Avoid-mismatched-leading-floats-across-r.patch

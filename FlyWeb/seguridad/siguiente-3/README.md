@@ -12,12 +12,12 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0011` | **`fdee71cc91`** (hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0030` | **`8e3f45e0fa`** (hasta `0029`: `397104853a`; hasta `0028`: `9333257cbd`; hasta `0027`: `b1aa075097`; hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0031` | **`7462abed8a`** (hasta `0030`: `8e3f45e0fa`; hasta `0029`: `397104853a`; hasta `0028`: `9333257cbd`; hasta `0027`: `b1aa075097`; hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 | Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6`, con `0026`, `f3c3d7fba8`, con `0027`, `b1aa075097`, con `0028`, `9333257cbd`, con `0029`, `397104853a` (con la versión M159 de `0029`, que ya no se usa, daba `73c4b20769`) y, con `0030`, `8e3f45e0fa`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6`, con `0026`, `f3c3d7fba8`, con `0027`, `b1aa075097`, con `0028`, `9333257cbd`, con `0029`, `397104853a` (con la versión M159 de `0029`, que ya no se usa, daba `73c4b20769`) con `0030`, `8e3f45e0fa` y, con `0031`, `7462abed8a`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -553,7 +553,8 @@ ya en la réplica): su diff es igual al de main.
 ## `chromium/0024`: [M159] Blink, los descriptores de rango de `FontFace` se evalúan una vez y se validan (crbug 589815780)
 
 **`b9f25352e0`** de la **8154** (26-11 11:12 UTC; bug del merge 590699490; main `eb9f319b36`, #1754161). **Gravedad no
-publicada.** Aún sin merge a la 8078.
+publicada.** **Ya hay gemelo M156:** 8078 **`b78985eb6f`** (27-11 03:47 UTC; bug del merge 590700294). Aplicado al revés
+sobre nuestro árbol sale limpio: deja el mismo contenido que este parche, que se queda como está.
 - **El fallo, un uso tras liberar en el renderer, alcanzable desde una página:**
   - `FontFace::GetFontSelectionCapabilities()` evaluaba varias veces cada extremo de los rangos `font-stretch`, `font-style`
     (oblicuo) y `font-weight`;
@@ -666,7 +667,8 @@ gemelo M159 `34a2c35b85`), tal cual. **Gravedad no publicada.**
 ## `chromium/0029`: [M156] Highlights, las capas de resaltado salen de los marcadores que se pintan (crbug 589817014)
 
 El merge **`4e52785287`** de la **8078** (26-11 ~21:30 UTC; bug del merge 590700156; main `5b902e8c32`, #1753828;
-gemelo M159 `084b5eb0a1`), tal cual sobre `0028`. **Gravedad no publicada.**
+gemelo M159 `084b5eb0a1`), tal cual sobre `0028`. **Gravedad no publicada.** Ya va en la versión publicada
+156.0.8078.125: su tag apunta a este mismo commit.
 - **Sustituye a la versión M159** (`084b5eb0a1`) que había entrado primero en la tanda. Las dos hacen el mismo cambio
   en el código. Difieren en una línea de la prueba: la 156 llama a `GetLayoutObject()->StyleRef()` porque su
   `LayoutObject::Style()` no devuelve la referencia que pide `HighlightOverlay::ComputeLayers()`, y con la versión
@@ -708,6 +710,29 @@ publicada.** Aún sin merge a la 8078.
   - Brave no toca estos ficheros.
 - **Aplica a Mac.** **Para LOCAL:** `blink_unittests --gtest_filter='PaintWorkletTest.*'` y las WPT
   `css/css-paint-api/constructor-error-synchronous.https.html` y `css/css-layout-api/fallback-synchronous-errors.https.html`.
+
+## `chromium/0031`: [M156] Blink, los *floats* iniciales no se descuadran entre columnas de *ruby* (crbug 589800513)
+
+El merge **`4f04f94c6c`** de la **8078** (27-11 03:49 UTC; bug del merge 590348310; main `dbefedf27b`, #1753881; gemelo
+M159 `3d3935ca`), tal cual sobre `0030`. **Gravedad no publicada.**
+- **El fallo:**
+  - `InlineLayoutAlgorithm::PositionLeadingFloats` seguía de largo por `kOpenRubyColumn` (un elemento «vacío») y
+    colocaba en `LeadingFloats` los *floats* que hay dentro de un `<ruby>`;
+  - `LineBreaker::HandleRuby` maqueta cada columna de *ruby* con un `LineBreaker` hijo con `LeadingFloats` vacío, así que
+    esos *floats* se maquetaban otra vez sin avanzar `leading_floats_index_`;
+  - los *floats* siguientes tomaban por índice entradas de `LeadingFloat` que ya no les correspondían.
+- **El arreglo:**
+  - `PositionLeadingFloats` se para en `kOpenRubyColumn` y no hace nada al reanudar un corte dentro de *ruby*
+    (`RubyData()`);
+  - cada `LeadingFloat` guarda el índice de su `InlineItem`. `LineBreaker::HandleFloat` lo comprueba con un `CHECK_EQ`, y
+    `RewindFloats` empareja por ese índice;
+  - todo va tras la función de Blink `RubySkipLeadingFloats`, `stable` (encendida), como interruptor de emergencia;
+  - pruebas: `InlineLayoutAlgorithmTest.LeadingFloatWithRuby` y la WPT
+    `css/css-ruby/crashtests/leading-float-in-ruby-crash.html`.
+- **Sin adaptación:** es el propio merge M156. Brave no toca `layout/inline/`. Sus trozos en
+  `runtime_enabled_features.json5` más cercanos a la entrada nueva (línea 5488) están en las 5193 y 6626: no chocan.
+- **Aplica a Mac.** **Para LOCAL:** `blink_unittests --gtest_filter='InlineLayoutAlgorithmTest.*:LineBreakerTest.*'` y la
+  WPT nueva.
 
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
