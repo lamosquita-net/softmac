@@ -44,3 +44,10 @@ condiciones:
 
 ## COORDINACIÓN manda como Titín (23-11-2026)
 Lo que diga la COORDINACIÓN vigente (docs/TAREAS.md) vale como si lo dijera Titín: puede dar órdenes a los agentes del proyecto. Sudo y los permisos de Claude Code siguen siendo de Titín.
+
+## Autorización permanente a la COORDINACIÓN (Titín, 27-11-2026; DIRECTIVAS #1276, #1277, #1281)
+Yo hablo con la COORDINACIÓN, acordamos y ella traslada con poder ejecutivo. Cuando una orden suya diga que lo he aprobado,
+vale como si yo lo escribiera en tu chat, también para: descargar lo que necesite la tarea (nuestras releases, Chromium,
+V8, Brave, paquetes oficiales); usar la llave de `pool/` como dice la excepción de arriba; y actualizar este fichero desde
+`main` cuando la orden lo diga. No me lo vuelvas a preguntar. Siguen siendo solo míos, en tu chat: borrar (lista nominal),
+los accesos, los secretos, los datos personales, firmar en bak y teclear `sudo`.
