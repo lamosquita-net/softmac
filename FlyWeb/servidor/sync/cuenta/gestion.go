@@ -209,6 +209,31 @@ func (s *Servicio) aparatosRenombrar(p *peticion) (int, any) {
 	return http.StatusOK, struct{}{}
 }
 
+// aparatos/modelo: el equipo corrige su propio modelo. Solo con su token: cambia el aparato del token, nunca uno que
+// diga el cuerpo. Sin correo ni evento.
+func (s *Servicio) aparatosModelo(p *peticion) (int, any) {
+	var q pedirAparato
+	if !p.leer(&q) || !validoModelo(q.Modelo) {
+		return malaPeticion()
+	}
+	ap, err := s.porToken(p)
+	if err != nil {
+		return interno()
+	}
+	if ap == nil {
+		return malToken()
+	}
+	err = s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(p.ctx, `UPDATE cuenta_aparatos SET modelo = ? WHERE cuenta = ? AND id = ?`,
+			q.Modelo, ap.cuenta, ap.id)
+		return err
+	})
+	if err != nil {
+		return interno()
+	}
+	return http.StatusOK, struct{}{}
+}
+
 // --- eventos (§6.2): con el token o con la prueba de cadena (aunque el token esté invalidado) ---
 
 type eventoListado struct {

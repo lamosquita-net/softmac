@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS cuentas (
   aviso_inactiva INTEGER NOT NULL DEFAULT 0,
   fallos_n INTEGER NOT NULL DEFAULT 0, fallos_desde INTEGER NOT NULL DEFAULT 0,
   fallos_aviso INTEGER NOT NULL DEFAULT 0, fallos_mac BLOB, fallos_mac_v INTEGER NOT NULL DEFAULT 0,
+  fallos_modelo TEXT NOT NULL DEFAULT '',
   cancelado INTEGER NOT NULL DEFAULT 0,
   eventos_n INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS cuenta_aparatos (
@@ -46,7 +47,16 @@ CREATE TABLE IF NOT EXISTS cuenta_sustituidas (cadena TEXT PRIMARY KEY, fecha IN
 type almacen struct{ db *sql.DB }
 
 func (a *almacen) crear(ctx context.Context) error {
-	_, err := a.db.ExecContext(ctx, esquema)
+	if _, err := a.db.ExecContext(ctx, esquema); err != nil {
+		return err
+	}
+	// Bases creadas antes de fallos_modelo: se añade la columna (el binario anterior la ignora).
+	var n int
+	if err := a.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM pragma_table_info('cuentas') WHERE name = 'fallos_modelo'`).Scan(&n); err != nil || n > 0 {
+		return err
+	}
+	_, err := a.db.ExecContext(ctx, `ALTER TABLE cuentas ADD COLUMN fallos_modelo TEXT NOT NULL DEFAULT ''`)
 	return err
 }
 

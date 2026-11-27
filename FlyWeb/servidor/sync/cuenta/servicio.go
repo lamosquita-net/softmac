@@ -181,6 +181,7 @@ func (s *Servicio) Router() http.Handler {
 		"/aparatos/quitar":                   s.aparatosQuitar,
 		"/aparatos/renovar":                  s.aparatosRenovar,
 		"/aparatos/renombrar":                s.aparatosRenombrar,
+		"/aparatos/modelo":                   s.aparatosModelo,
 		"/eventos":                           s.eventos,
 		"/no-he-sido-yo":                     s.noHeSidoYo,
 		"/cuenta/borrar":                     s.cuentaBorrar,

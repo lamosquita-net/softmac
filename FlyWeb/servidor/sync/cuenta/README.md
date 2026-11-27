@@ -27,7 +27,7 @@ del cuerpo HTTP; `cuenta`, el id de la cuenta que el Mac conoce
 (vacío en `alta/confirmar` y `empezar-de-cero/confirmar`; en `eventos` y `aparatos/renovar` se acepta vacío
 también, y la cuenta la fija la cadena: S1). Referencia: `FirmarPrueba` en `prueba.go`.
 
-**Token de aparato**: `Authorization: Bearer <token>`; solo sirve para `eventos` y `aparatos/listar`. Caduca a los
+**Token de aparato**: `Authorization: Bearer <token>`; solo sirve para `eventos`, `aparatos/listar` y `aparatos/modelo`. Caduca a los
 180 días sin uso; se invalida al cambiar la contraseña, la clave o con «No he sido yo» (se saca otro con
 `aparatos/renovar`, la prueba de cadena y el secreto del aparato).
 
@@ -47,7 +47,7 @@ guion, espacios y minúsculas).
 | `nonce` | — | `{}` | `nonce` |
 | `alta` | — | `email` | `solicitud` (igual exista o no la cuenta) |
 | `alta/confirmar` | prueba `alta`, cuenta vacía | `solicitud codigo kl envoltura modelo nombre` | `cuenta aparato token secreto` (repetida: secreto nuevo) |
-| `entrar/empezar` | — (espera) | `email kl` | `solicitud` (igual sea buena o no) |
+| `entrar/empezar` | — (espera) | `email kl [modelo]` | `solicitud` (igual sea buena o no) |
 | `entrar/terminar` | — | `solicitud codigo kl modelo nombre` | `cuenta aparato token secreto envoltura` |
 | `contrasena/codigo` | prueba `contrasena-codigo` | `{}` | `solicitud` |
 | `contrasena/cambiar` | prueba `contrasena-cambiar` | `solicitud codigo kl envoltura [aparato secreto]` | `[aparato token]` |
@@ -58,6 +58,7 @@ guion, espacios y minúsculas).
 | `aparatos/quitar` | prueba `aparatos-quitar` | `aparato` | `{}` |
 | `aparatos/renovar` | prueba `aparatos-renovar` | `aparato secreto` (sin el secreto, 403), o `modelo nombre` para darse de alta (Mac unido con las 24 palabras; avisa) | `cuenta aparato token [secreto, solo al darse de alta]` |
 | `aparatos/renombrar` | prueba `aparatos-renombrar` | `aparato nombre` | `{}` |
+| `aparatos/modelo` | token | `modelo` (cambia solo el del aparato del token; sin correo ni evento) | `{}` |
 | `eventos` | token o prueba `eventos` (si vienen las dos, cuenta la prueba) | `desde` (último `n` leído) | `estado [cuenta] [email, solo con prueba: S2] [borrado] eventos: [n tipo fecha datos]` |
 | `no-he-sido-yo` | prueba `no-he-sido-yo` | `{}` | `{}` |
 | `cuenta/borrar` | prueba `cuenta-borrar` | `{}` | `{}` |
@@ -70,10 +71,15 @@ guion, espacios y minúsculas).
 
 `estado` de `eventos`: `activa`, `borrado-programado` (con `borrado`), `cadena-sustituida` (la clave se cambió desde
 otro Mac, 30 días) o `sin-cuenta`. Tipos de evento: `mac-anadido`, `contrasena-acertada`, `contrasena-fallos`
-(`datos.n`, `datos.desde`, `datos.mac`), `contrasena-cambiada`, `email-cambiado`, `cadena-cambiada`, `cadena-ligada`,
+(`datos.n`, `datos.desde`, `datos.mac`, `datos.modelo`), `contrasena-cambiada`, `email-cambiado`, `cadena-cambiada`, `cadena-ligada`,
 `aparato-quitado`, `aparato-renombrado`, `no-he-sido-yo`, `borrado-pedido` (`datos.fecha`), `borrado-cancelado`.
 `datos.aparato` es el autor, solo cuando está verificado (S3): el aparato del token que acompaña a la llamada, el que
 recibe token nuevo al cambiar contraseña o clave, o el nuevo al añadirse; nunca el `aparato` del cuerpo.
+
+En `contrasena-fallos`, `datos.modelo` es el que mandó en `entrar/empezar` el equipo que falló (opcional; se valida
+como en `entrar/terminar` y, si no vale, se ignora). **Lo escribe un equipo sin autenticar:** se enseña tal cual, sin
+darlo por cierto; si no viene, el cliente pone «equipo desconocido». Con token, es el del aparato. Con varios fallos
+en el mismo aviso es el del último que lo trajo. `datos.desde` es la hora del primer fallo. Sin IP.
 
 **Errores** (`{"error": …}`): 400 `peticion`; 401 `prueba` / `token`; 403 `credenciales` (contraseña o código, sin
 decir cuál, O9); 404 `sin-cuenta` / `aparato`; 409 `cadena-ligada` / `cadena-borrada` / `email-ocupado` /

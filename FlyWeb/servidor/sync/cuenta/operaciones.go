@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -254,6 +255,8 @@ func (s *Servicio) entrarEmpezar(p *peticion) (int, any) {
 	var q struct {
 		Email string
 		KL    string `json:"kl"`
+		// Modelo es opcional y lo manda un equipo sin autenticar: solo sirve para el aviso de fallos.
+		Modelo json.RawMessage
 	}
 	if !p.leer(&q) {
 		return malaPeticion()
@@ -290,7 +293,7 @@ func (s *Servicio) entrarEmpezar(p *peticion) (int, any) {
 	}
 	if v, _ := s.secreto(kl, c.sal); !iguales(v, c.verif) {
 		resultado = "kl-rechazada"
-		s.registrarFallo(p.ctx, c, "")
+		s.registrarFallo(p.ctx, c, "", modeloOpcional(q.Modelo))
 		return http.StatusOK, respSolicitud{s.sol.falsa()}
 	}
 	err = s.alm.enTx(p.ctx, func(tx *sql.Tx) error {
@@ -376,7 +379,17 @@ func (s *Servicio) entrarTerminar(p *peticion) (int, any) {
 
 // --- fallos de contraseña (§6.2): el primero al momento; después, como mucho un aviso por hora y cuenta ---
 
-func (s *Servicio) registrarFallo(ctx context.Context, c *registro, mac string) {
+// modeloOpcional devuelve el modelo si viene y es válido; si no, vacío, sin rechazar la petición.
+func modeloOpcional(crudo json.RawMessage) string {
+	var m string
+	if json.Unmarshal(crudo, &m) != nil || !validoModelo(m) {
+		return ""
+	}
+	return m
+}
+
+// registrarFallo anota un fallo. Con varios pendientes, el nombre y el modelo son los del último que los trajo.
+func (s *Servicio) registrarFallo(ctx context.Context, c *registro, mac, modelo string) {
 	ahora := s.ahora()
 	err := s.alm.enTx(ctx, func(tx *sql.Tx) error {
 		var n, desde, aviso int64
@@ -394,8 +407,9 @@ func (s *Servicio) registrarFallo(ctx context.Context, c *registro, mac string) 
 			macC, macV = s.cfg.AES.sellar([]byte("fallos:"+c.id), []byte(mac))
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE cuentas SET fallos_n = ?, fallos_desde = ?,
+		  fallos_modelo = COALESCE(NULLIF(?, ''), fallos_modelo),
 		  fallos_mac = COALESCE(?, fallos_mac), fallos_mac_v = CASE WHEN ? IS NULL THEN fallos_mac_v ELSE ? END
-		  WHERE id = ?`, n, desde, macC, macC, macV, c.id); err != nil {
+		  WHERE id = ?`, n, desde, modelo, macC, macC, macV, c.id); err != nil {
 			return err
 		}
 		if aviso == 0 || ahora-aviso >= int64(ritmoFallos/time.Second) {
@@ -413,11 +427,12 @@ func (s *Servicio) eventoFallos(ctx context.Context, tx *sql.Tx, cuentaID string
 	var n, desde int64
 	var macC []byte
 	var macV int
-	if err := tx.QueryRowContext(ctx, `SELECT fallos_n, fallos_desde, fallos_mac, fallos_mac_v FROM cuentas
-	  WHERE id = ?`, cuentaID).Scan(&n, &desde, &macC, &macV); err != nil {
+	var modelo string
+	if err := tx.QueryRowContext(ctx, `SELECT fallos_n, fallos_desde, fallos_mac, fallos_mac_v, fallos_modelo
+	  FROM cuentas WHERE id = ?`, cuentaID).Scan(&n, &desde, &macC, &macV, &modelo); err != nil {
 		return err
 	}
-	d := datosEvento{N: n, Desde: desde}
+	d := datosEvento{N: n, Desde: desde, Modelo: modelo}
 	if macC != nil {
 		if m, err := s.cfg.AES.abrir(macV, []byte("fallos:"+cuentaID), macC); err == nil {
 			d.Mac = string(m)
@@ -427,7 +442,7 @@ func (s *Servicio) eventoFallos(ctx context.Context, tx *sql.Tx, cuentaID string
 		return err
 	}
 	_, err := tx.ExecContext(ctx, `UPDATE cuentas SET fallos_n = 0, fallos_desde = 0, fallos_mac = NULL,
-	  fallos_mac_v = 0, fallos_aviso = ? WHERE id = ?`, ahora, cuentaID)
+	  fallos_mac_v = 0, fallos_modelo = '', fallos_aviso = ? WHERE id = ?`, ahora, cuentaID)
 	return err
 }
 
@@ -479,11 +494,11 @@ func (s *Servicio) conContrasena(p *peticion, c *registro, kl []byte) ([]byte, i
 	}
 	v, kw := s.secreto(kl, c.sal)
 	if !iguales(v, c.verif) {
-		mac := ""
+		mac, modelo := "", ""
 		if ap, _ := s.porToken(p); ap != nil && ap.cuenta == c.id {
-			mac = s.nombreDe(ap)
+			mac, modelo = s.nombreDe(ap), ap.modelo
 		}
-		s.registrarFallo(p.ctx, c, mac)
+		s.registrarFallo(p.ctx, c, mac, modelo)
 		cod, v := credenciales()
 		return nil, cod, v
 	}
