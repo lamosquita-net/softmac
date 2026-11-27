@@ -243,6 +243,14 @@ func (s *Servicio) repetida(ctx context.Context, x *solicitud, r []byte, alta bo
 // se anota al recibir turno (N6). Con KL correcta, código al email (cupo 2) y evento en los Macs; si no, una
 // solicitud falsa con la misma forma. Crece la espera en los dos casos.
 func (s *Servicio) entrarEmpezar(p *peticion) (int, any) {
+	// Una línea por intento bien formado con su resultado, para no tener que deducirlo. Sin email, cuenta, IP ni
+	// ningún dato de la petición; la respuesta al cliente no cambia. Nivel warn porque es el nivel global.
+	var resultado string
+	defer func() {
+		if resultado != "" {
+			log.Warn().Str("resultado", resultado).Msg("cuenta: entrar/empezar")
+		}
+	}()
 	var q struct {
 		Email string
 		KL    string `json:"kl"`
@@ -257,24 +265,31 @@ func (s *Servicio) entrarEmpezar(p *peticion) (int, any) {
 	}
 	clave := s.claveEspera(email)
 	if h := s.esperas.Hasta(clave); !h.IsZero() {
+		resultado = "en-espera"
 		return espera(h)
 	}
 	if !s.turno(p.ctx) {
+		resultado = "ocupado"
 		return ocupado()
 	}
 	defer s.sem.Salir()
 	if ok, h := s.esperas.Anotar(clave); !ok {
+		resultado = "en-espera"
 		return espera(h)
 	}
 	c, err := s.alm.porEmail(p.ctx, s.hmacs(email))
 	if err != nil {
+		resultado = "error-interno"
 		return interno()
 	}
 	if c == nil {
+		resultado = "sin-cuenta"
+
 		s.cfg.Estirar(kl, aleatorio(largoSal)) // scrypt de relleno: mismo tiempo (§4.8)
 		return http.StatusOK, respSolicitud{s.sol.falsa()}
 	}
 	if v, _ := s.secreto(kl, c.sal); !iguales(v, c.verif) {
+		resultado = "kl-rechazada"
 		s.registrarFallo(p.ctx, c, "")
 		return http.StatusOK, respSolicitud{s.sol.falsa()}
 	}
@@ -282,15 +297,21 @@ func (s *Servicio) entrarEmpezar(p *peticion) (int, any) {
 		return s.evento(p.ctx, tx, c.id, evContrasenaAcertada, datosEvento{})
 	})
 	if err != nil {
+		resultado = "kl-aceptada-error-interno"
 		return interno()
 	}
 	if !s.cupos.Entrada(c.id) {
+		resultado = "kl-aceptada-sin-cupo"
 		return http.StatusOK, respSolicitud{s.sol.falsa()}
 	}
 	x := &solicitud{tipo: solEntrar, cuentaID: c.id, email: clave}
 	codigo := s.sol.crear(x)
 	if e, err := s.emailDe(c); err == nil {
 		s.mandarCodigo(e, solEntrar, codigo)
+		resultado = "kl-aceptada-codigo-en-cola"
+	} else {
+		resultado = "kl-aceptada-email-no-se-abre"
+		log.Error().Err(err).Msg("cuenta: el email no se abre; no se manda el código de entrada")
 	}
 	return http.StatusOK, respSolicitud{x.id}
 }

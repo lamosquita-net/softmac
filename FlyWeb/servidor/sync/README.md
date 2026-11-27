@@ -22,7 +22,8 @@ del usuario. Decisión del HUMANO (03/10): sistema propio, en ns2, con el menor 
   cadena y nunca sale de los Macs del usuario. En ns2 solo hay datos cifrados: ni nosotros podemos leerlos.
 - **Sin cuentas.** La cadena se identifica por una clave pública ed25519 (derivada del código); cada petición va
   firmada (token de `brave_sync_auth_manager.cc`), y go-sync comprueba la firma y la hora (±1 día).
-- **Sin IP.** flyweb-sync no registra peticiones; solo avisos y errores, sin IP (algún error de go-sync puede llevar
+- **Sin IP.** flyweb-sync no registra peticiones, salvo una línea por `entrar/empezar` con su resultado y otra al
+  entregar un código al MTA (sin email, cuenta ni IP); por lo demás, solo avisos y errores, sin IP (algún error de go-sync puede llevar
   la clave pública de la cadena, que es un seudónimo). Escucha solo
   en `127.0.0.1`; Apache, delante, no le pasa la IP y tampoco la registra (`e0/apache/flyweb-sync-vhost.conf`).
 - **Borrado.** «Borrar datos de sincronización» en el navegador borra todo lo de la cadena en el servidor y la

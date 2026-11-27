@@ -179,6 +179,8 @@ func (c *colaCorreo) repartir(ctx context.Context) time.Duration {
 			c.altas.Add(1)
 		case correoCodigo:
 			c.codigos.Add(1)
+			// El fallo ya queda arriba («el MTA no acepta el correo»); sin destinatario ni código.
+			log.Warn().Msg("cuenta: código entregado al MTA")
 		case correoAviso:
 			c.avisos.Add(1)
 		}
