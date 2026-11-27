@@ -41,7 +41,7 @@ release-3x sin falso PARO (#1274). Plantilla de D8 igualada con la suya (#1280, 
    Maglev, sale Alto) + E1 + U3 + cookies + iconos + #1250 + «equipo» + lo nuevo: aviso de reiniciar en Linux (MOTOR,
    subir la versión de producto sin tocar lo declarado), FlySync (MOTOR, ruta `flyweb://settings/flysync`), modelo de los
    equipos ya registrados y modelo en el aviso de intento fallido (D8 cliente, SERVIDOR #1279), página del código con
-   «mira en Spam» (parche 2 de D8, 5fb04a33…), «el almacén de claves» en vez de «llavero» (opcional de MOTOR).
+   «mira en Spam» (parche 2 de D8, 5fb04a33…), «el almacén de claves» en vez de «llavero» (opcional de MOTOR). **Avisos de FlySync en pastilla naranja con texto negro, en claro y oscuro (DIRECTIVAS 27-11; MOTOR).**
 4. Con Titín, más adelante y como tema propio: correos, avisos y aprobaciones en otros equipos (ciclo de alta).
 
 **Lecciones:** no dar por buena una deducción de un agente frente a lo que ve Titín (la «contraseña mala» por tamaños era

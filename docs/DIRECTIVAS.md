@@ -439,6 +439,10 @@ sandbox, seguridad). Fuente: fila OR.1 de `TAREAS.md`; plan en [`migracion-128.m
   Para agentes nuevos de la nube, el método preferido es **un agente por tarea** con encargo escrito, que se releva solo si
   la tarea es larga; si la COORDINACIÓN local no puede abrirlos, deja el texto y los abre Titín. Pasar todo a Ubuntu: no.
 - **COORDINACIÓN en local y sin cartero (Titín, 21-11 noche, «sí, las dos»; propuesta de ARQUITECTURA, #1184):** la COORDINACIÓN se queda en la MacPro7,1 y **el cartero se retira**. Ajustes: (1) toda orden con contenido a un local va también por escrito en `buzon/<PAPEL>/` con su línea en `ENTREGADO.md`; (2) la COORDINACIÓN hace `git fetch` de `buzon` al empezar cada turno (el vigilante de 30 min es solo ayuda); (3) se vigila la rama `buzon` entera, no solo `buzon/COORDINACION/`. Horas con `date -u`. Se revisa al cerrar la 3.2.1.
+- **Avisos de FlySync en pastilla naranja (Titín, 27-11; COORDINACIÓN-66; próxima versión, la de seguridad, Mac y Linux):**
+  los mensajes de la página de FlySync (avisos «¿Has sido tú?», errores y estados) salen en **pastilla naranja con texto
+  negro**, igual en tema claro y oscuro. Fuera el recuadro de línea roja y el texto rojo: «el rojo, y más en línea, vibra
+  sobre el color oscuro». Naranja: el mismo del aviso naranja que ya lleva FlyWeb. Lo prepara MOTOR-47 con la ruta FlySync.
 - **El flujo de las aprobaciones: Titín acuerda con la COORDINACIÓN y ella traslada (Titín, 27-11; COORDINACIÓN-66; lo ha
   tenido que repetir varias veces):** «yo hablo contigo, coordinación, llegamos a un acuerdo y tú trasladas». Lo acordado con la
   COORDINACIÓN **no se le vuelve a preguntar** en el chat de ningún agente: subir, publicar, instalar o escribir en ns1/ns2, y
