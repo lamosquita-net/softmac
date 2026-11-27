@@ -12,12 +12,12 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
 | brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0016` | **`84fcd5f8cf`** (hasta `0015`: `8597ffbfe0`; hasta `0014`: `5c4feeb327`; hasta `0013`: `2e2ad230d2`; hasta `0012`: `1a7e31cd26`; hasta `0011`: `fdee71cc91`; hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
-| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0034` | **`aaf815b98f`** (hasta `0033`: `68c1946f4c`; hasta `0032`: `d11aeeddb0`; hasta `0031`: `7462abed8a`; hasta `0030`: `8e3f45e0fa`; hasta `0029`: `397104853a`; hasta `0028`: `9333257cbd`; hasta `0027`: `b1aa075097`; hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
+| chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0035` | **`3f1df9726f`** (hasta `0034`: `aaf815b98f`; hasta `0033`: `68c1946f4c`; hasta `0032`: `d11aeeddb0`; hasta `0031`: `7462abed8a`; hasta `0030`: `8e3f45e0fa`; hasta `0029`: `397104853a`; hasta `0028`: `9333257cbd`; hasta `0027`: `b1aa075097`; hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 | Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
 Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a uno, `f0b2710da1`, `da1b6bad0b`,
 `a036036b92`, `1f9fb49f2f`, `285d207b50`, `fa42a88980`, `87485ee224`, `d774af4e36`, con `0009`, `8db178bac4`, con
-`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6`, con `0026`, `f3c3d7fba8`, con `0027`, `b1aa075097`, con `0028`, `9333257cbd`, con `0029`, `397104853a` (con la versión M159 de `0029`, que ya no se usa, daba `73c4b20769`) con `0030`, `8e3f45e0fa`, con `0031`, `7462abed8a`, con `0032`, `d11aeeddb0`, con `0033`, `68c1946f4c` y, con `0034`, `aaf815b98f`. Sobre la base anterior, `7e6c74e256`,
+`0010`, `a0d5962f4b`, con `0011`, `8ccd92e18d`, con `0012`, `cd61904b3b`, con `0013`, `92487cbf3b`, con `0014`, `5d44536b7f`, con `0015`, `86c8e4b537`, con `0016`, `f5d5a97329`, con `0017`, `aed1f81b7d`, con `0018`, `e0d888ebec`, con `0019`, `2ffe7d5d87`, con `0020`, `388dff3e93`, con `0021`, `325e5a221b`, con `0022`, `3608da3c2f`, con `0023`, `79a89d9a44`, con `0024`, `683ac43b54`, con `0025`, `0d484117f6`, con `0026`, `f3c3d7fba8`, con `0027`, `b1aa075097`, con `0028`, `9333257cbd`, con `0029`, `397104853a` (con la versión M159 de `0029`, que ya no se usa, daba `73c4b20769`) con `0030`, `8e3f45e0fa`, con `0031`, `7462abed8a`, con `0032`, `d11aeeddb0`, con `0033`, `68c1946f4c`, con `0034`, `aaf815b98f` y, con `0035`, `3f1df9726f`. Sobre la base anterior, `7e6c74e256`,
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
@@ -786,6 +786,22 @@ El merge **`4488066508`** de la **8154** (27-11 18:24 UTC; bug del merge 5907005
   merge no existen en la 156 (allí el `DCHECK` va sin comentario); fuera de eso, las líneas añadidas y quitadas son las
   mismas. Las funciones que usan las pruebas ya están en la 156. Brave no toca `chrome/browser/history_clusters`.
 - **Aplica a Mac.** **Para LOCAL:** `unit_tests --gtest_filter='HistoryClustersTabHelperTest.*'`.
+
+## `chromium/0035`: [M159] Lens, el overlay solo toma el foco si su pestaña está activa (crbug 589800523)
+
+El merge **`d7f0bdccf7`** de la **8154** (27-11 20:44 UTC; bug del merge 590348127; main `11b504e0e0`, #1753798), tal cual
+sobre `0034`. **Aún sin merge a la 8078.** **Gravedad no publicada, y no consta que sea de seguridad.**
+- **El fallo:** `OverlayBaseController::ShowOverlay()` llamaba siempre a `RequestFocus()` sobre el `WebView` del overlay.
+  Si el overlay de una pestaña en segundo plano (por ejemplo, en vista dividida) se volvía a mostrar desde
+  `TabForegrounded()` sin estar activa, robaba el foco a la pestaña activa y podía disparar, de forma síncrona, los
+  callbacks de activación de pestaña mientras se notificaba a otra.
+- **El arreglo:** solo pide el foco si `tab_->IsActivated()`, como ya hacía `HideOverlay()` (dos sitios).
+- **Por qué va en la tanda:** el commit no dice que sea de seguridad (no lleva `Fixed:`). Pero describe una reentrada
+  en las notificaciones de pestañas, y su bug es correlativo de 589800510 y 589800513 (`0031`), que sí lo son. Son dos
+  líneas sin efecto fuera de ese caso; si sale que no es de seguridad, se puede quitar.
+- **Sin adaptación:** aplica tal cual (desplazado 45 líneas). Brave no toca `chrome/browser/ui/lens`.
+- **Aplica a Mac** si el overlay de Lens está disponible en FlyWeb (por comprobar: en Chrome depende de la función y del
+  buscador por defecto). **Para LOCAL:** `browser_tests --gtest_filter='LensOverlayControllerBrowserTest*'`.
 
 ## `brave-core/0001`: [M159] V8, la etiqueta de `Intl.Locale` pasa por `ToStdString` (crbug 585869521)
 
