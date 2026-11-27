@@ -50,3 +50,4 @@ ce0b7559fba7fa3f364d3678ed2bf081ccd098dbc362cadad1de2128744cde6e  chromium/0030-
 7be57a637a9aadea6b3e513461ae64b72029df9e6042f074fe3ecf963a24c7d8  chromium/0031-M156-floats-Avoid-mismatched-leading-floats-across-r.patch
 f3846f7cfba1fc28f907c42e5ef7d9cdf2b8ab0526ebf09700d425eb21c4ad8c  chromium/0032-M156-Skip-layout-of-fieldset-children-if-display-loc.patch
 d4cca4e9786d0f4ed00be4f7b20337d178b35125c9ba7de15dcc3cd09bef9044  chromium/0033-M156-Reland-disk_cache-Use-rename-in-POSIX-MoveCache.patch
+a9ef6fa394da993efd9617dd640c9ca3e52daa47aea255f41c7b38c1cef58776  chromium/0034-M159-HistoryClusters-Fix-UAF-in-OnUkmNavigationCompl.patch
