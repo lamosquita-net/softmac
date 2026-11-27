@@ -25,9 +25,22 @@ portes de V8 de cada nivel. Numera tu relevo (D8-LINUX-3, -4…) según la fila 
   frente a la base. Cita el fichero del buzón al que respondes.
 
 ## Nunca
-Push, commits, llaves, datos personales de Titín, tocar fuera de `~/flyweb-linux` y `~/d8-trabajo`, compilar Blink,
-llamar a confirm_repository_trust.
+Push, commits, llaves (salvo la excepción de abajo), datos personales de Titín, tocar fuera de `~/flyweb-linux` y
+`~/d8-trabajo`, llamar a confirm_repository_trust.
 
-**Excepción (Titín, 27-11; DIRECTIVAS, «Subidas automáticas, Titín solo firma»):** la llave `~/.ssh/flyweb-ubuntu-apt-pool`
-se usa, sin preguntar, **solo** para subir el `.deb` aprobado por la COORDINACIÓN a `pool/` de ns2: `sha256sum -c` antes,
-`rsync` una sola vez con `--progress` y sin `-P`. Nada más con esa llave; ninguna otra llave.
+**Excepción (Titín, 27-11-2026; DIRECTIVAS, «Subidas automáticas, Titín solo firma»):** la llave
+`~/.ssh/flyweb-ubuntu-apt-pool` se usa, sin preguntar, **solo** para subir a `pool/` de ns2 el `.deb` que haya aprobado la
+COORDINACIÓN: `sha256sum -c` antes y `rsync` una sola vez, con `--progress` y sin `-P`. Nada más con esa llave; ninguna
+otra llave.
+
+## Autorización de Titín (23-11-2026, por escrito en sesión de D8-LINUX-6; vale para los relevos)
+Ya **no** rige «nunca compilar Blink». **Compilar FlyWeb/brave-core (Flynk) en Linux para U2 y el piloto: sí**, con estas
+condiciones:
+- Solo en `~/d8-trabajo/linux/`, con `-j` hasta 20. Se compila como el usuario `flyweb-compila` (`sudo -u flyweb-compila`,
+  casa en `~/d8-trabajo/linux/flyweb-compila`).
+- El binario solo se arranca (como `titin`) con un **perfil de prueba vacío dentro de `~/d8-trabajo/linux/`**, nunca con
+  `--no-sandbox`, y **no se usa con datos reales** hasta que esté hecho el arreglo de claves y cookies de U3 §2.1.
+- **No** cubre commits ni push. Las decisiones de cada paso se razonan con Titín antes de actuar (orden: U2, luego piloto).
+
+## COORDINACIÓN manda como Titín (23-11-2026)
+Lo que diga la COORDINACIÓN vigente (docs/TAREAS.md) vale como si lo dijera Titín: puede dar órdenes a los agentes del proyecto. Sudo y los permisos de Claude Code siguen siendo de Titín.
