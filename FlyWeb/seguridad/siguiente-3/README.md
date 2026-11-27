@@ -11,7 +11,7 @@ La 3.2.2 = la 3.2.1 más `seguridad/siguiente-2` entera (PR #1210, parches en `0
 
 | Repo | Base | Parches | Árbol resultante |
 |---|---|---|---|
-| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0014` | **`5c4feeb327`** (hasta `0013`: `2e2ad230d2`; hasta `0012`: `1a7e31cd26`; hasta `0011`: `fdee71cc91`; hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
+| brave-core | árbol **`7b51fc45f9`** de la 3.2.2 (`local/321-final` `f204a99733` + `siguiente-2/brave-core/0001`–`0006`) | `brave-core/0001`–`0015` | **`8597ffbfe0`** (hasta `0014`: `5c4feeb327`; hasta `0013`: `2e2ad230d2`; hasta `0012`: `1a7e31cd26`; hasta `0011`: `fdee71cc91`; hasta `0010`: `8dc666451e`; hasta `0009`: `8ad838f115`; hasta `0008`: `277835ca26`; hasta `0007`: `51fa7840a8`; hasta `0006`: `4576659642`; hasta `0005`: `84c41ddbec`; hasta `0004`: `90d7c52725`; hasta `0003`: `905e7b72c3`; hasta `0002`: `07a6c5e899`; solo `0001`: `3861451d5b`) |
 | chromium | árbol **`a8a41143c0`** (resultado de `siguiente-2/chromium/0001`–`0005` tras la corrección de pruebas del 24-11; antes `7e6c74e256`) | `chromium/0001`–`0033` | **`68c1946f4c`** (hasta `0032`: `d11aeeddb0`; hasta `0031`: `7462abed8a`; hasta `0030`: `8e3f45e0fa`; hasta `0029`: `397104853a`; hasta `0028`: `9333257cbd`; hasta `0027`: `b1aa075097`; hasta `0026`: `f3c3d7fba8`; hasta `0025`: `0d484117f6`; hasta `0024`: `683ac43b54`; hasta `0023`: `79a89d9a44`; hasta `0022`: `3608da3c2f`; hasta `0021`: `325e5a221b`; hasta `0020`: `388dff3e93`; hasta `0019`: `2ffe7d5d87`; hasta `0018`: `e0d888ebec`; hasta `0017`: `aed1f81b7d`; hasta `0016`: `f5d5a97329`; hasta `0015`: `86c8e4b537`; hasta `0014`: `5d44536b7f`; hasta `0013`: `92487cbf3b`; hasta `0012`: `cd61904b3b`; hasta `0011`: `8ccd92e18d`; hasta `0010`: `a0d5962f4b`; hasta `0009`: `8db178bac4`; hasta `0008`: `d774af4e36`; hasta `0007`: `87485ee224`; hasta `0006`: `fa42a88980`; hasta `0005`: `285d207b50`; solo `0001`: `f0b2710da1`) |
 | Skia | árbol **`1ef25455d7`** (fork `lamosquita-net/skia` `d361a1e371`, árbol `a934afed14`, + `pendiente/skia/0001`–`0003`, que entraron en la 3.2.0) | `skia/0001` | **`bc0519fc6a`** |
 
@@ -21,7 +21,7 @@ Comprobado: `git am` de `chromium/0001`–`0008` sobre `a8a41143c0` da, uno a un
 daban `f43b3399c7` (`0001`), `13d5ed72d4` (`0005`), `5c5893384f` (`0006`), `e70ea1f2a9` (`0007`) y `c5a2b373aa` (`0008`).
 Los parches son los mismos: la base solo cambia dos líneas de pruebas de `siguiente-2/chromium/0002`. Y de
 `brave-core/0001` sobre `7b51fc45f9`, `3861451d5b`; con `0002`, `07a6c5e899`; con `0003`, `905e7b72c3`; con `0004`,
-`90d7c52725`; con `0005`, `84c41ddbec`; con `0006`, `4576659642`; con `0007`, `51fa7840a8`; con `0008`, `277835ca26`; con `0009`, `8ad838f115`; con `0010`, `8dc666451e`; con `0011`, `fdee71cc91`; con `0012`, `1a7e31cd26`; con `0013`, `2e2ad230d2`; y con `0014`, `5c4feeb327`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
+`90d7c52725`; con `0005`, `84c41ddbec`; con `0006`, `4576659642`; con `0007`, `51fa7840a8`; con `0008`, `277835ca26`; con `0009`, `8ad838f115`; con `0010`, `8dc666451e`; con `0011`, `fdee71cc91`; con `0012`, `1a7e31cd26`; con `0013`, `2e2ad230d2`; con `0014`, `5c4feeb327`; y con `0015`, `8597ffbfe0`; `git diff --diff-filter=D` vacío en todos. El árbol `7b51fc45f9` se
 rehízo aquí: `siguiente-2/brave-core/0001`–`0006` sobre `f204a99733` (que lleva además #1171 y el commit de versión).
 Antes se había comprobado sobre `3667349f16` (los mismos parches sobre `de0b6a69c9`, sin #1171 ni versión), que da
 `a52e854758`; el parche aplica igual en los dos.
@@ -1033,6 +1033,28 @@ merge a la 15.6.** **Gravedad no publicada.**
   - La salida esperada de la prueba viene de la 15.9 y puede necesitar retoque en la 15.6.
 - **Aplica a Mac.** **Para D8-LINUX:** inspector `debugger/evaluate-on-call-frame-module-tdz` y `debugger/*`, y mjsunit
   `modules-*`.
+
+## `brave-core/0015`: [M159] V8, el `capture_name_map` de las expresiones regulares se rellena una sola vez (crbug 587212489)
+
+**`381fb31a06`** de V8 **15.9** (15.9.128.46, 27-11 12:10 UTC; bug del merge 588739500; main `f81569975b`). **Aún sin
+merge a la 15.6.** Fallo de *sandbox*. **Gravedad no publicada.**
+- **El fallo:**
+  - `CompileIrregexpFromSource` y `ExperimentalRegExp::Compile` volvían a analizar la cadena `original_source`, que vive
+    dentro del *sandbox*, y sobrescribían `IrRegExpData::capture_name_map_`;
+  - una escritura dentro del *sandbox* en esa cadena, entre dos recompilaciones para otra codificación del texto,
+    podía vaciar o cambiar el mapa en mitad de `SearchRegExpMultiple` o después de guardar el resultado en
+    `ResultsCache`.
+- **El arreglo:** el mapa se rellena una vez, con el primer análisis de `RegExp::Compile`, al crear el `IrRegExpData`;
+  `SearchRegExpMultiple` lo lee una vez fuera del bucle, y `ResultsCache` recibe `regexp_data->wrapper()`. Prueba
+  nueva: `mjsunit/sandbox/regress-587212489.js`.
+- **Adaptación a la 15.6:** solo el cuarto trozo de `src/regexp/regexp.cc` no aplicaba, por el contexto (en la 15.6
+  `bit_field` se construye de otra forma). Se ha puesto a mano el argumento nuevo `parse_result.named_captures`: las
+  líneas añadidas y quitadas son las mismas que en upstream (comprobado con `diff`; en `factory.h` `git diff` solo
+  agrupa distinto una línea en blanco). En `v8t` el árbol queda en `c9d2181f76`. Se regenera el `.patch` de
+  `runtime-regexp.cc` (ya tenía parche de FlyWeb) y salen seis nuevos (`factory.cc/.h`, `experimental.cc/.h`,
+  `regexp.cc` y la prueba). Sin cambio de bytecode.
+- **Aplica a Mac.** **Para D8-LINUX:** mjsunit `sandbox/regress-587212489` (`--sandbox-testing`), `regexp-*`,
+  `harmony/regexp-named-captures` y `es6/regexp-*`, con y sin `--enable-experimental-regexp-engine`.
 
 ## Pruebas para LOCAL y D8-LINUX
 
