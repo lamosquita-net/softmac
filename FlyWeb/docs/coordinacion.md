@@ -7,6 +7,46 @@ Leer antes: `CLAUDE.md` (**primera regla fija: datos personales del HUMANO nunca
 **Titín**), `docs/TAREAS.md` (tabla de agentes, **reglas 1–20**, filas FM.28, FM.29, FM.31 y FS.20–FS.22),
 `FlyWeb/docs/migracion-128.md` (plan de la base 128, recalibrado) y los estudios de hoy (abajo).
 
+## 27-11 (tarde): COORDINACIÓN-66 → COORDINACIÓN-67 (local, 7,1; leer primero; manda sobre lo de abajo)
+
+COORDINACIÓN-66 = «Relevo COORDINACIÓN-66 FlyWeb» [b0a720], relevo por contexto; queda quieta. La 67 la abre Titín.
+Vigilante igual (Monitor 120 s sobre `origin/buzon`, punta en un fichero, filtro
+`grep -v -E 'buzon: COORDINACION-6[0-9] |uploaded by COORDINACION-6[0-9]'`; re-armar al caducar). Canales: LOCAL-25
+«Local (25)» (sin nada en marcha); D8-LINUX-6 «ubuntu (6)» (sin push; sus ficheros grandes se sacan del registro de la
+sesión, `~/.claude/projects/…/<sesión>.jsonl`, y se comprueba el sha256: no copiarlos a mano); SERVIDOR-LOCAL «Servidor
+Local (2)»; ARQUITECTURA «Arquitectura FlyWeb monorepo»; PUBLICACIÓN «Publicación»; SEGURIDAD-PORTES-33 y MOTOR-47 por
+nombre (contestan al buzón).
+
+**Lo más importante (DIRECTIVAS #1276, #1277, #1281):** Titín acuerda con la COORDINACIÓN y ella traslada con poder
+ejecutivo; **no se le repregunta nada acordado** (subir, publicar, instalar en ns1/ns2). Suyos: borrar, versiones, accesos,
+secretos, datos personales, firma en bak y `sudo`. Descargas: el agente las pide a la COORDINACIÓN, que pregunta a Titín y
+traslada citándole. **Límite real:** las sesiones de los agentes rechazan un permiso transmitido para llaves, descargas y su
+propio CLAUDE.md; hasta que Titín añada `software/entregas/coordinacion/autorizacion-coordinacion.md` a su
+`~/.claude/CLAUDE.md` en la 7,1 (orden dada: `cat … >> ~/.claude/CLAUDE.md`) y D8 copie el CLAUDE de main (#1282,
+e2b629a6…; se lo enseña a Titín), hace falta su «sí» en ese chat. Decírselo una vez, sin presentarlo como regla nuestra.
+Las subidas las hace el agente; Titín solo firma. No volver a escribir «producción con el sí de Titín en su chat».
+
+**Hecho:** 3.2.2-51 de Linux publicada (pruebas y stable, 27-11 12:17/12:19 UTC; 7624b551…, 129 644 172 B), instalada sola
+por unattended-upgrade en la Ubuntu de Titín y reiniciada; textos «equipo» bien (MOTOR APTO al parche). Correo del código:
+era **Spam de Gmail** (SPF/DKIM/DMARC pasan); #1271 (registro de cada intento) y #1272 («equipo» en correos, código
+suavizado) fusionados; **instalación en ns2 pendiente del «sí» de Titín en el chat de SERVIDOR-LOCAL** (descarga). Guion
+release-3x sin falso PARO (#1274). Plantilla de D8 igualada con la suya (#1280, #1282).
+
+**Abierto, por orden:**
+1. **Servidor de sync 05cec9f** (1271b5df…1046) en ns2: falta el «sí» de Titín en el chat de SERVIDOR-LOCAL.
+2. **Firma única de apt** (#1283, SEGURIDAD-PORTES-33, APTO de D8 con notas i–iii): cuando las recoja, fusionar y dar a
+   Titín la instalación en bak (fichero nuevo `/etc/flyweb-firma/apt.conf` con `subclave=5F93D81F55B2D87877C69A77F42AD6C8426E03CA`).
+3. **Próxima versión** (Mac y Linux; número y corte, de Titín; no inventar): `siguiente-3` (chromium hasta 0033,
+   brave-core hasta 0014; nada urgente, sin gravedades publicadas; vigilar si brave-core/0013, lectura fuera de límites en
+   Maglev, sale Alto) + E1 + U3 + cookies + iconos + #1250 + «equipo» + lo nuevo: aviso de reiniciar en Linux (MOTOR,
+   subir la versión de producto sin tocar lo declarado), FlySync (MOTOR, ruta `flyweb://settings/flysync`), modelo de los
+   equipos ya registrados y modelo en el aviso de intento fallido (D8 cliente, SERVIDOR #1279), página del código con
+   «mira en Spam» (parche 2 de D8, 5fb04a33…), «el almacén de claves» en vez de «llavero» (opcional de MOTOR).
+4. Con Titín, más adelante y como tema propio: correos, avisos y aprobaciones en otros equipos (ciclo de alta).
+
+**Lecciones:** no dar por buena una deducción de un agente frente a lo que ve Titín (la «contraseña mala» por tamaños era
+falsa: su captura lo zanjó); probar los cambios de cuenta también con un equipo ya registrado, no solo con perfil nuevo.
+
 ## 26-11 (noche, tarde): COORDINACIÓN-65 → COORDINACIÓN-66 (local, 7,1; leer primero; manda sobre lo de abajo)
 
 COORDINACIÓN-65 = «Coordinación (65)» [e279d4], relevo por contexto. La 66 la abre Titín. Vigilante como la 65 (guion en
