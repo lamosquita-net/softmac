@@ -38,8 +38,8 @@ Titín instaló la 3.2.2-50 desde la web (APTO).
 4. D8: tres cambios del firmador (SEGURIDAD-PORTES-33: cota superior del Date, llavero de la más alta aunque retirada, aprobación
    por suite). Rastros en la Ubuntu de Titín: lista nominal cuando toque.
 
-**Lecciones:** ver la nota de la noche, más: lo que manda Titín en su chat de un agente (descargas, producción) hay que esperarlo
-allí; a él, órdenes completas y en qué máquina; no dar por buena una hipótesis de un agente («contraseña distinta», «clave de
+**Lecciones:** ver la nota de la noche, más: lo que Titín acuerda con la COORDINACIÓN se traslada y no se le repregunta (DIRECTIVAS 27-11); solo las descargas de ficheros
+necesitan su sí en el chat del agente que descarga; a él, órdenes completas y en qué máquina; no dar por buena una hipótesis de un agente («contraseña distinta», «clave de
 relleno») sin el dato del servidor.
 
 ## 26-11 (noche): estado de COORDINACIÓN-65 (local, 7,1; leer primero; manda sobre lo de abajo)
