@@ -200,3 +200,26 @@ y lee `status.json`; el motor no cambia.
 - Titín pega bloques de órdenes en un terminal nuevo: las variables `APP`, `CONF`, `L`, `R` no existen en un terminal nuevo;
   darle siempre el bloque de definiciones, sin comentarios `#` (rompen el asistente de `config`).
 - El freno de borrados es solo un porcentaje: en carpetas de menos de 10 ficheros borrar uno ya lo activa (`--force`).
+
+## BACKUPDRIVE-LOCAL (relevo de BACKUPDRIVE-LOCAL-1, 16-11-2026)
+
+Quien sigue: sesión local en la 7,1 que maneja la MacPro6,1 (MacTrash, Mojave) por ssh (`titin@mactrash.local`, clave
+`~/.ssh/claude_lamosquita`, una sesión ssh por paso, scripts largos con `nohup` en la 6,1 y espera en una sola ssh).
+Informa a BACKUPDRIVE-4 (nube; los mensajes son de ida: dejar también comentario en el PR).
+
+- **Instalado en la 6,1:** artefacto 18af363 + `backupdrive-sync.sh` de 83c12e7 (con `--fast-list`). Sin perfiles: `profiles`
+  solo con comentarios; quedan 8 ficheros de `state/` (BACKUPDRIVE-4: dejarlos). Clave de Google en
+  `~/.config/backupdrive/client_secret.json` (600) de la 7,1 y la 6,1: no borrarla, no imprimirla.
+- **Resultados** en `docs/pruebas-6-1.md` (PR #865): todo en verde con 18af363; fast-list: pasada sin cambios de 7 233
+  ficheros 273 s → 30 s (#1012).
+- **Nada de pruebas en el Drive de Titín mientras FreeFileSync siga activo:** FFS sincroniza en los dos sentidos
+  «/Volumes/USB3 6Tb/googledrive» con la raíz de Drive (RealTimeSync, 600 s) y baja cualquier carpeta de prueba.
+  Las cuatro de prueba se apartaron el 16-11: USB → `/Volumes/USB3 6Tb/cuarentena-backupdrive-20261116/`, Drive → papelera;
+  lo local en `~/bd-cuarentena/pruebas-20261116`.
+- **Norma de Titín para borrar:** en sus discos nunca `rm`; mover a una cuarentena del mismo volumen tras lista nominal
+  aprobada por él. Antes de tocar el USB, esperar a que no corra `FreeFileSync_main`.
+- **H9 (sustituir FFS):** mediciones de solo lectura en `~/h9-check` de la 6,1 (listas con nombres de clientes: no salen de
+  ahí; a la nube solo cifras). Copia de los `.ffs_batch`/`.ffs_real` sin cambiar en `~/bd-cuarentena/ffs-original/`.
+  Check `--size-only`: 363 013 iguales, solo arriba 39 695 (casi todo `_cuarentena`), solo abajo 26, distintos 20.
+  `dedupe list`: 119 parejas de ficheros duplicados (42 idénticos, 77 distintos) y 10 carpetas duplicadas; 2 nombres con
+  «／» (Google Meet). Todas las pasadas de FFS acaban con errores por esos duplicados.
