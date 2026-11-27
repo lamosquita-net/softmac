@@ -8,7 +8,7 @@ Un solo guion para Mac y Linux: `flyweb-release.sh <manifiesto> <paso>`. Lee el 
 | `comprobar` | Solo lee: commits y árboles de chromium y brave-core, perfil PGO, RAM, intercambio y disco |
 | `parches` | Parches locales del manifiesto, `apply_patches` y árbol de V8 resultante |
 | `gn` | `gn gen` sin compilar, valores efectivos y diferencia con `args_referencia` |
-| `compilar` | Release con registro (la clave de servicios no llega al registro) |
+| `compilar` | Release con registro (la clave de servicios no llega al registro). `gn` y `compilar` paran sin `clave_servicios_fichero` |
 | `revisar` | Salida, AVX, build-info y sumas |
 | `entregar` | Solo Mac: copia la .app y los dSYM a entregas; no publica |
 | `todo` | Los cinco primeros, en orden, parando al primer fallo |

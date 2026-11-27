@@ -22,5 +22,7 @@ trabajos=20
 trabajos_baja=20
 depot_tools=/media/d8-trabajo/linux/flyweb-compila/depot_tools
 memoria_tope=26G
+# Fichero 0600 de flyweb-compila; la clave la pone Titín. Sin ella la Release para (3.2.2-51: Shields a 0 por un 403).
+clave_servicios_fichero=/media/d8-trabajo/linux/flyweb-compila/claves/flyweb-services-key
 intercambio_min_gb=32
 disco_min_gb=60
