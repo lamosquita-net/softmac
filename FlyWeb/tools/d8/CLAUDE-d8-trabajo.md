@@ -27,3 +27,7 @@ portes de V8 de cada nivel. Numera tu relevo (D8-LINUX-3, -4…) según la fila 
 ## Nunca
 Push, commits, llaves, datos personales de Titín, tocar fuera de `~/flyweb-linux` y `~/d8-trabajo`, compilar Blink,
 llamar a confirm_repository_trust.
+
+**Excepción (Titín, 27-11; DIRECTIVAS, «Subidas automáticas, Titín solo firma»):** la llave `~/.ssh/flyweb-ubuntu-apt-pool`
+se usa, sin preguntar, **solo** para subir el `.deb` aprobado por la COORDINACIÓN a `pool/` de ns2: `sha256sum -c` antes,
+`rsync` una sola vez con `--progress` y sin `-P`. Nada más con esa llave; ninguna otra llave.
