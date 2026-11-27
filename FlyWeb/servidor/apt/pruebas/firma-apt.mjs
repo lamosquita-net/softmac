@@ -9,7 +9,7 @@ import crypto from 'crypto'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { firmar, retirar, refirmar, comprobarClave, leerControl, parrafoPackages, aprobado, mayor } from '../bak/firmar-apt.mjs'
+import { firmar, retirar, refirmar, comprobar, publicar, ejecutar, comprobarReloj, comprobarClave, leerControl, parrafoPackages, aprobado, mayor } from '../bak/firmar-apt.mjs'
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fwapt-'))
 let fallos = 0
@@ -91,13 +91,19 @@ try {
   const llaveroOtro = gpg(otra, ['--export'])
 
   // --- Funciones sueltas.
-  ok(aprobado('abc  3.2.2-50 # x', 'abc', '3.2.2-50') && !aprobado('abc  3.2.2-51', 'abc', '3.2.2-50'), 'la aprobación ata SHA-256 y versión')
+  const H = 'ab'.repeat(32)
+  ok(aprobado(`${H}  3.2.2-50  stable # x`, H, '3.2.2-50') && !aprobado(`${H}  3.2.2-51  stable`, H, '3.2.2-50'), 'la aprobación ata SHA-256 y versión')
+  ok(!aprobado(`${H}  3.2.2-50`, H, '3.2.2-50', 'stable') && aprobado(`${H}  3.2.2-50`, H, '3.2.2-50', 'pruebas'), 'sin suite, la aprobación solo vale para pruebas')
+  ok(aprobado(`${H}  3.2.2-50  stable`, H, '3.2.2-50', 'pruebas') && !aprobado(`${H}  3.2.2-50  pruebas`, H, '3.2.2-50', 'stable'), 'con stable vale para las dos; con pruebas, solo para pruebas')
+  ok(!aprobado(`${H}  3.2.2-50  otra`, H, '3.2.2-50', 'pruebas') && !aprobado(`${H.toUpperCase()}x  3.2.2-50  stable`, H, '3.2.2-50'), 'una suite desconocida o un SHA-256 mal formado no aprueban nada')
   ok(mayor('3.2.2-51', '3.2.2-50') && mayor('3.2.10-1', '3.2.9-99') && !mayor('3.2.2-50', '3.2.2-50'), 'versiones comparadas con dpkg')
   const ctl = leerControl(`Package: flyweb\nVersion: 1\nDescription: a\n b\n .\n c\n`)
   ok(ctl.Description === 'a\n b\n .\n c', 'control normal con descripción de varias líneas')
   await falla(() => leerControl('Package: flyweb\nDescription: a\n\nPackage: flyweb\nFilename: pool/malo.deb\n'), 'línea no válida', 'control con un párrafo inyectado (línea en blanco)')
   await falla(() => leerControl('Package: flyweb\nDescription: a\n \nFilename: pool/malo.deb\n'), 'línea no válida', 'control con una línea de solo espacios')
   await falla(() => leerControl('Package: flyweb\nVersion: 1\nversion: 2\n'), 'campo repetido', 'control con un campo repetido')
+  await falla(() => leerControl('Package: flyweb\nPre-depends: dpkg\n'), 'otras mayúsculas', 'control con un campo de la lista blanca con otras mayúsculas')
+  await falla(() => leerControl('Package: flyweb\r\nVersion: 1\n'), 'caracteres de control', 'control con caracteres de control')
   const p = parrafoPackages({ Package: 'flyweb', Version: '1', Filename: 'pool/malo.deb', 'X-Prueba': 'x', Description: DESC }, { filename: 'pool/main/f/flyweb/flyweb_1_amd64.deb', tam: 3, sha256: 'ab' })
   ok(!p.includes('malo') && !p.includes('X-Prueba') && p.includes('Filename: pool/main/f/flyweb/flyweb_1_amd64.deb') && p.endsWith('SHA256: ab\n'), 'Packages solo con la lista blanca; Filename lo pone bak')
 
@@ -125,24 +131,35 @@ try {
   const dIny = debInyectado(path.join(tmp, 'iny'), d52, 'Package: flyweb\nVersion: 3.2.2-52\nArchitecture: amd64\nDescription: x\n\nPackage: flyweb\nFilename: pool/main/f/flyweb/malo.deb\n')
   const sha = (f) => sha256(fs.readFileSync(f))
   const aprob = path.join(tmp, 'apt-aprobados')
-  fs.writeFileSync(aprob, ['# aprobados de prueba', `${sha(d50)}  3.2.2-50`, `${sha(d51)}  3.2.2-51`, `${sha(d52)}  3.2.2-52`,
-    `${sha(dOtro)}  3.2.2-52`, `${sha(dSin)}  3.2.2-52`, `${sha(dAjeno)}  3.2.2-52`, `${sha(dIny)}  3.2.2-52`,
-    `${sha(d50)}  3.2.2-51  # aprobado con la versión equivocada`].join('\n') + '\n')
+  fs.writeFileSync(aprob, ['# aprobados de prueba', `${sha(d50)}  3.2.2-50  stable`, `${sha(d51)}  3.2.2-51  stable`, `${sha(d52)}  3.2.2-52  stable`,
+    `${sha(dOtro)}  3.2.2-52  stable`, `${sha(dSin)}  3.2.2-52  stable`, `${sha(dAjeno)}  3.2.2-52  stable`, `${sha(dIny)}  3.2.2-52  stable`,
+    `${sha(d50)}  3.2.2-51  stable  # aprobado con la versión equivocada`].join('\n') + '\n')
   const vacio = path.join(tmp, 'vacio'); fs.writeFileSync(vacio, '')
   const salida = path.join(tmp, 'salida')
   const base = { aprobados: aprob, gnupghome: bak, subclave: sub2y, salida }
   const t0 = Date.now()
   const url = (v) => `https://apt.flyweb.lamosquita.net/pool/main/f/flyweb/flyweb_${v}_amd64.deb`
   const descargas = []
-  const fetchFn = async (u) => { descargas.push(u); const v = u.match(/flyweb_(.*)_amd64/)[1]; return { status: 200, arrayBuffer: async () => fs.readFileSync(path.join(pool, `flyweb_${v}_amd64.deb`)) } }
-  const opc = (dt = 0) => ({ fetchFn, ej, ahora: t0 + dt * 1000, log: nada })
+  // ns2 de mentira: la raíz da la cabecera Date (el reloj de ns2 = el de la prueba, salvo desfase), pool/ da los .deb y
+  // dists/ lo que haya en `servido` (por defecto, nada: 404).
+  const RAIZ = 'https://apt.flyweb.lamosquita.net/'
+  const respuesta = (status, datos = Buffer.from(''), cab = {}) => ({ status, headers: new Headers(cab), arrayBuffer: async () => datos })
+  const ns2 = ({ ahora, desfase = 0, servido = () => null, raizCae = false }) => async (u) => {
+    if (u === RAIZ) { if (raizCae) throw new Error('sin red'); return respuesta(200, undefined, { date: new Date(ahora + desfase).toUTCString() }) }
+    const m = u.match(/flyweb_(.*)_amd64\.deb$/)
+    if (m) { descargas.push(u); return respuesta(200, fs.readFileSync(path.join(pool, `flyweb_${m[1]}_amd64.deb`))) }
+    const r = u.match(/^https:\/\/apt\.flyweb\.lamosquita\.net\/(dists\/[^?]*)/)
+    const d = r && servido(r[1])
+    return d ? respuesta(200, d) : respuesta(404)
+  }
+  const opc = (dt = 0, mas = {}) => { const ahora = t0 + dt * 1000; return { fetchFn: ns2({ ahora, ...mas }), ej, ahora, log: nada } }
 
   // --- Rechazos antes de firmar.
   registro.length = 0
   await falla(() => firmar({ ...base, aprobados: vacio, deb: d50, version: '3.2.2-50' }, opc()), 'no aprobado', 'rechaza un .deb sin aprobar')
   ok(!registro.includes('dpkg-deb'), 'el SHA-256 se comprueba antes de pasar el .deb a dpkg-deb (dpkg-deb no se llamó)')
   await falla(() => firmar({ ...base, aprobados: vacio, deb: d50como51, version: '3.2.2-51' }, opc()), 'no aprobado', 'rechaza otra versión con el mismo .deb')
-  fs.writeFileSync(path.join(tmp, 'aprob-mal'), `${sha(d50)}  3.2.2-51\n`)
+  fs.writeFileSync(path.join(tmp, 'aprob-mal'), `${sha(d50)}  3.2.2-51  stable\n`)
   await falla(() => firmar({ ...base, aprobados: path.join(tmp, 'aprob-mal'), deb: d50como51, version: '3.2.2-51' }, opc()), 'no la 3.2.2-51 aprobada', 'rechaza un .deb cuyo control dice otra versión que la aprobada')
   await falla(() => firmar({ ...base, deb: dOtro, version: '3.2.2-52' }, opc()), 'solo se firma flyweb', 'rechaza otro Package')
   descargas.length = 0
@@ -193,7 +210,7 @@ try {
   // --- Retirar.
   await falla(() => retirar({ ...base, version: '3.2.2-49' }, opc(30)), 'no está publicada', 'retirar rechaza una versión que no está')
   await falla(() => retirar({ ...base, version: '3.2.2-51' }, opc(20)), 'Date nuevo', 'retirar tampoco firma con un Date no mayor')
-  const queda = retirar({ ...base, version: '3.2.2-51' }, opc(30))
+  const queda = await retirar({ ...base, version: '3.2.2-51' }, opc(30))
   const pkr = fs.readFileSync(path.join(bin, 'Packages'), 'utf8')
   ok(queda.version === '3.2.2-50' && pkr.includes('Version: 3.2.2-50') && !pkr.includes('3.2.2-51'), 'retirar vuelve a la anterior en Packages')
   const est = JSON.parse(fs.readFileSync(path.join(salida, 'stable', 'estado.json'), 'utf8'))
@@ -205,7 +222,7 @@ try {
   const pkAntes = fs.readFileSync(path.join(bin, 'Packages')); const dateAntes = rel.match(/^Date: (.*)$/m)[1]
   const rsync = []
   const ejSubida = (cmd, args, o) => { if (cmd === 'rsync') { rsync.push(args); return Buffer.from('') } return ej(cmd, args, o) }
-  refirmar({ ...base, subir: 'ns2-apt' }, { ej: ejSubida, ahora: t0 + 50000, log: nada })
+  await refirmar({ ...base, subir: 'ns2-apt' }, { ...opc(50), ej: ejSubida })
   const rel2 = fs.readFileSync(path.join(dist, 'Release'), 'utf8')
   ok(fs.readFileSync(path.join(bin, 'Packages')).equals(pkAntes) && rel2.match(/^Date: (.*)$/m)[1] !== dateAntes, 'refirmar: mismo Packages, Date nuevo')
   const orden = rsync.map((a) => a.includes('--delete') ? 'borrar-by-hash' : a.some((x) => x.endsWith('/by-hash/')) ? 'by-hash' : a.some((x) => x.endsWith('InRelease')) ? 'InRelease' : a.some((x) => x.endsWith('/Packages')) ? 'Packages' : '?')
@@ -219,6 +236,115 @@ try {
   await firmar({ ...base, deb: d52, version: '3.2.2-52' }, opc(60))
   ok(fs.readFileSync(path.join(bin, 'Packages'), 'utf8').includes('Version: 3.2.2-52'), 'después de retirar se publica la siguiente')
 
+  // --- Reloj de bak contra ns2 (cota superior del Date).
+  ok(await comprobarReloj({ fetchFn: ns2({ ahora: t0, desfase: 60000 }), ahora: t0 }) === 'ns2', 'reloj: un minuto de diferencia con ns2 vale')
+  await falla(() => comprobarReloj({ fetchFn: ns2({ ahora: t0, desfase: -10 * 60000 }), ahora: t0 }), 'adelantado', 'reloj: se niega con bak 10 min adelantado respecto a ns2')
+  await falla(() => comprobarReloj({ fetchFn: ns2({ ahora: t0, desfase: 10 * 60000 }), ahora: t0 }), 'atrasado', 'reloj: se niega con bak 10 min atrasado')
+  const ejNtp = (v) => (cmd, args, o) => cmd === 'timedatectl' ? Buffer.from(`${v}\n`) : ej(cmd, args, o)
+  ok(await comprobarReloj({ fetchFn: ns2({ ahora: t0, raizCae: true }), ej: ejNtp('yes'), ahora: t0 }) === 'ntp', 'reloj: si ns2 no contesta, vale NTPSynchronized=yes')
+  await falla(() => comprobarReloj({ fetchFn: ns2({ ahora: t0, raizCae: true }), ej: ejNtp('no'), ahora: t0 }), 'no se puede comprobar el reloj', 'reloj: sin ns2 ni NTP, no se firma')
+  descargas.length = 0
+  await falla(() => firmar({ ...base, deb: url('3.2.2-53'), version: '3.2.2-53' }, opc(70, { desfase: -10 * 60000 })), 'adelantado', 'firmar se niega con el reloj de bak adelantado')
+  ok(descargas.length === 0, 'con el reloj mal no se descarga nada')
+  const d53 = hacerDeb(pool, { version: '3.2.2-53', llavero })
+  fs.appendFileSync(aprob, `${sha(d53)}  3.2.2-53  stable\n`)
+  await falla(() => firmar({ ...base, deb: url('3.2.2-53'), version: '3.2.2-53' }, opc(-600)), 'en el futuro', 'si el Date publicado quedó en el futuro, lo dice')
+  await falla(() => retirar({ ...base, version: '3.2.2-52' }, opc(70, { desfase: -10 * 60000 })), 'adelantado', 'retirar se niega con el reloj adelantado')
+  await falla(() => refirmar(base, opc(70, { desfase: -10 * 60000 })), 'adelantado', 'refirmar se niega con el reloj adelantado')
+
+  // --- La aprobación atada a la suite.
+  const aprob2 = path.join(tmp, 'aprob-2col'); fs.writeFileSync(aprob2, `${sha(d53)}  3.2.2-53\n`)
+  await falla(() => firmar({ ...base, aprobados: aprob2, deb: url('3.2.2-53'), version: '3.2.2-53' }, opc(80)), 'no aprobado para stable', 'una aprobación sin suite no vale para stable')
+  await firmar({ ...base, aprobados: aprob2, deb: url('3.2.2-53'), version: '3.2.2-53', suite: 'pruebas' }, opc(80))
+  ok(fs.readFileSync(path.join(salida, 'pruebas', 'web', 'dists', 'pruebas', 'main', 'binary-amd64', 'Packages'), 'utf8').includes('Version: 3.2.2-53'), 'la misma aprobación sin suite sí vale para pruebas')
+
+  // --- Sin estado.json pero con índice publicado: no firma salvo con --primera si.
+  const ejNoSube = (cmd, args, o) => cmd === 'rsync' ? Buffer.from('') : ej(cmd, args, o)
+  const hayIndice = (r) => r === 'dists/stable/InRelease' ? Buffer.from('InRelease de otra época') : null
+  const sal1 = path.join(tmp, 'salida-primera')
+  await falla(() => firmar({ ...base, salida: sal1, subir: 'ns2-apt', deb: url('3.2.2-50'), version: '3.2.2-50' }, { ...opc(90, { servido: hayIndice }), ej: ejNoSube }), 'estado perdido', 'sin estado.json pero con InRelease publicado, no firma')
+  await firmar({ ...base, salida: sal1, subir: 'ns2-apt', primera: 'si', deb: url('3.2.2-50'), version: '3.2.2-50' }, { ...opc(90, { servido: hayIndice }), ej: ejNoSube })
+  ok(fs.existsSync(path.join(sal1, 'stable', 'estado.json')), 'con --primera si, firma')
+  const sal1b = path.join(tmp, 'salida-primera-404')
+  await firmar({ ...base, salida: sal1b, subir: 'ns2-apt', deb: url('3.2.2-50'), version: '3.2.2-50' }, { ...opc(90), ej: ejNoSube })
+  ok(fs.existsSync(path.join(sal1b, 'stable', 'estado.json')), 'sin estado y sin índice publicado (404): es la primera, firma')
+
+  // --- Rotación: también se verifica con el llavero de la versión más alta firmada nunca, aunque esté retirada.
+  gpg(maestra, ['--quick-add-key', principal, 'ed25519', 'sign', '2y'])
+  const subNueva = huellas(maestra, 'sub').find((h) => ![sub2y, sub60, sub200].includes(h))
+  const llaveroNuevo = gpg(maestra, ['--export', principal])
+  const bakNueva = nuevoHome('bak-nueva')
+  gpg(bakNueva, ['--import'], gpg(maestra, ['--export-secret-subkeys', `${subNueva}!`]))
+  const pool2 = path.join(tmp, 'pool2')
+  const d80 = hacerDeb(pool2, { version: '3.2.2-80', llavero: llaveroNuevo })
+  const d81 = hacerDeb(pool2, { version: '3.2.2-81', llavero })
+  const aprob3 = path.join(tmp, 'aprob-rot'); fs.writeFileSync(aprob3, `${sha(d80)}  3.2.2-80  stable\n${sha(d81)}  3.2.2-81  stable\n`)
+  const b3 = { ...base, aprobados: aprob3, salida: path.join(tmp, 'salida-rot') }
+  await firmar({ ...b3, deb: d80, version: '3.2.2-80' }, opc(100))
+  await firmar({ ...b3, deb: d81, version: '3.2.2-81' }, opc(110))
+  await retirar({ ...b3, version: '3.2.2-81' }, opc(120))
+  await falla(() => refirmar({ ...b3, gnupghome: bakNueva, subclave: subNueva }, opc(130)), 'con el llavero de 3.2.2-81', 'tras rotar, refirmar verifica también con el llavero de la más alta firmada nunca (retirada): los equipos que la tienen no verían la firma nueva')
+
+  // --- comprobar: lo publicado en ns2 contra lo firmado.
+  const webDe = (sal) => (r) => { const f = path.join(sal, r.split('/')[1], 'web', r); return fs.existsSync(f) ? fs.readFileSync(f) : null }
+  const pedidas = []
+  const anota = (servido) => (r) => { pedidas.push(r); return servido(r) }
+  const rapido = { log: nada, intentos: 2, esperar: async () => {} }
+  const logs = []
+  await comprobar({ salida, version: '3.2.2-52', sha256: sha(d52) }, { ...rapido, fetchFn: ns2({ ahora: t0, servido: anota(webDe(salida)) }), log: (m) => logs.push(m) })
+  ok(logs.some((m) => m.startsWith('comprobado stable')), 'comprobar: lo servido es lo firmado, cuadra')
+  ok(pedidas.some((r) => r.includes('by-hash')) && pedidas.length >= 4, `comprobar mira InRelease, Packages y los dos by-hash (${pedidas.length} peticiones)`)
+  const servidas = []
+  const fUrls = async (u, op) => { if (u !== RAIZ) servidas.push([u, op]); return ns2({ ahora: t0, servido: webDe(salida) })(u, op) }
+  await comprobar({ salida, version: '3.2.2-52', sha256: sha(d52) }, { ...rapido, fetchFn: fUrls })
+  ok(servidas.every(([u, op]) => /\?sin-cache=[0-9a-f]{12}$/.test(u) && op.headers['Cache-Control'] === 'no-cache' && op.cache === 'no-store'), 'comprobar esquiva cachés (consulta aleatoria, Cache-Control: no-cache)')
+  const viejo = (r) => r.endsWith('InRelease') ? Buffer.from('InRelease viejo') : webDe(salida)(r)
+  await falla(() => comprobar({ salida, version: '3.2.2-52', sha256: sha(d52) }, { ...rapido, fetchFn: ns2({ ahora: t0, servido: viejo }) }), 'no es el que ha firmado bak', 'comprobar: un InRelease viejo (caché o subida a medias) no cuadra')
+  const sinByHash = (r) => r.includes('by-hash') ? null : webDe(salida)(r)
+  await falla(() => comprobar({ salida, version: '3.2.2-52', sha256: sha(d52) }, { ...rapido, fetchFn: ns2({ ahora: t0, servido: sinByHash }) }), 'HTTP 404', 'comprobar: sin by-hash publicado no cuadra')
+  await falla(() => comprobar({ salida, version: '3.2.2-52', sha256: sha(d51) }, { ...rapido, fetchFn: ns2({ ahora: t0, servido: webDe(salida) }) }), 'no está publicada', 'comprobar: otro SHA-256 que el firmado no cuadra')
+
+  // --- publicar: una orden para pruebas y stable.
+  const sal4 = path.join(tmp, 'salida-publicar'); const aprob4 = path.join(tmp, 'aprob-publicar')
+  fs.writeFileSync(aprob4, '# aprobados'); fs.chmodSync(aprob4, 0o644)
+  const conf = path.join(tmp, 'apt.conf')
+  fs.writeFileSync(conf, `# apt.conf de prueba\nsubclave=${sub2y}\naprobados=${aprob4}\ngnupghome=${bak}\nsalida=${sal4}\nsubir=ns2-apt\n`)
+  const d90 = hacerDeb(pool, { version: '3.2.2-90', llavero }); const d91 = hacerDeb(pool, { version: '3.2.2-91', llavero })
+  const llamadas = []
+  const depsPub = (dt, servido = webDe(sal4)) => {
+    const o = opc(dt, { servido }); const hijo = { ...o, ej: ejNoSube, intentos: 1, esperar: async () => {} }
+    return { comoUsuario: async (u, args) => { llamadas.push([u, args[0], args[args.indexOf('--suite') + 1]]); await ejecutar(args, hijo) },
+      getuid: () => process.getuid(), uidRoot: process.getuid(), ahora: o.ahora, log: nada }
+  }
+  const pub = (v, s, deps, mas = {}) => publicar({ config: conf, version: v, sha256: s, ...mas }, deps)
+  await falla(() => pub('3.2.2-90', sha(d90), { ...depsPub(200), getuid: () => 1000, uidRoot: 0 }), 'sudo', 'publicar se niega sin sudo')
+  fs.chmodSync(aprob4, 0o666)
+  await falla(() => pub('3.2.2-90', sha(d90), depsPub(200)), 'lo puede escribir', 'publicar se niega si alguien más que root puede escribir los aprobados')
+  fs.chmodSync(aprob4, 0o644)
+  await falla(() => pub('3.2.2-90', sha(d90), depsPub(200), { config: path.join(tmp, 'no-existe.conf') }), 'falta la subclave', 'publicar sin subclave en apt.conf')
+  await falla(() => pub('3.2.2-90', 'x'.repeat(64), depsPub(200)), 'SHA-256 no válido', 'publicar con un SHA-256 mal formado')
+  llamadas.length = 0
+  await pub('3.2.2-90', sha(d90).toUpperCase(), depsPub(200))
+  ok(llamadas.map((l) => `${l[1]}:${l[2]}`).join(',') === 'firmar:pruebas,comprobar:pruebas,firmar:stable,comprobar:stable', `publicar: ${llamadas.map((l) => `${l[1]} ${l[2]}`).join(' → ')}`)
+  ok(llamadas.every((l) => l[0] === 'flywebfirma'), 'publicar firma y comprueba como el usuario de firma (flywebfirma por defecto)')
+  ok(aprobado(fs.readFileSync(aprob4, 'utf8'), sha(d90), '3.2.2-90', 'stable') && fs.readFileSync(aprob4, 'utf8').startsWith('# aprobados\n'), 'publicar apunta «<sha256>  <versión>  stable» (en una línea nueva)')
+  for (const s of ['pruebas', 'stable']) ok(JSON.parse(fs.readFileSync(path.join(sal4, s, 'estado.json'), 'utf8')).publicadas[0].version === '3.2.2-90', `publicar: ${s} queda con la 3.2.2-90`)
+  llamadas.length = 0; const lineas = fs.readFileSync(aprob4, 'utf8')
+  await pub('3.2.2-90', sha(d90), depsPub(210))
+  ok(llamadas.every((l) => l[1] === 'comprobar') && llamadas.length === 2 && fs.readFileSync(aprob4, 'utf8') === lineas, 'publicar otra vez: no vuelve a firmar ni a apuntar, solo comprueba')
+  fs.appendFileSync(aprob4, `${sha(d50)}  3.2.2-91  pruebas\n`)
+  await falla(() => pub('3.2.2-91', sha(d91), depsPub(220)), 'otro SHA-256', 'publicar se para si la versión ya está aprobada con otro SHA-256')
+  fs.writeFileSync(aprob4, lineas)
+  const antesStable = fs.readFileSync(path.join(sal4, 'stable', 'estado.json'))
+  const viejoPruebas = (r) => r === 'dists/pruebas/InRelease' ? Buffer.from('InRelease viejo') : webDe(sal4)(r)
+  llamadas.length = 0
+  await falla(() => pub('3.2.2-91', sha(d91), depsPub(230, viejoPruebas)), 'stable no se ha tocado', 'publicar: si lo publicado en pruebas no cuadra, se para')
+  ok(fs.readFileSync(path.join(sal4, 'stable', 'estado.json')).equals(antesStable) && !llamadas.some((l) => l[2] === 'stable'), '... y stable no se ha firmado')
+  llamadas.length = 0
+  await pub('3.2.2-91', sha(d91), depsPub(240))
+  ok(llamadas.map((l) => `${l[1]}:${l[2]}`).join(',') === 'comprobar:pruebas,firmar:stable,comprobar:stable', 'al repetir, pruebas solo se comprueba y stable se firma')
+  ok(JSON.parse(fs.readFileSync(path.join(sal4, 'stable', 'estado.json'), 'utf8')).publicadas[0].version === '3.2.2-91', 'stable queda con la 3.2.2-91')
+
   if (process.env.FLYWEB_APT_GUARDAR) {
     const g = process.env.FLYWEB_APT_GUARDAR
     fs.cpSync(path.join(salida, 'stable', 'web'), g, { recursive: true })
@@ -230,7 +356,7 @@ try {
   }
 } finally {
   try { run('gpgconf', ['--kill', 'all'], { env: { ...process.env, GNUPGHOME: path.join(tmp, 'maestra') } }) } catch {}
-  for (const h of ['bak', 'caduca', 'otra', 'gpgv']) try { run('gpgconf', ['--kill', 'all'], { env: { ...process.env, GNUPGHOME: path.join(tmp, h) } }) } catch {}
+  for (const h of ['bak', 'bak-nueva', 'caduca', 'otra', 'gpgv']) try { run('gpgconf', ['--kill', 'all'], { env: { ...process.env, GNUPGHOME: path.join(tmp, h) } }) } catch {}
   fs.rmSync(tmp, { recursive: true, force: true })
 }
 console.log(fallos ? `\n${fallos} FALLOS` : '\nTodo correcto'); process.exit(fallos ? 1 : 0)
