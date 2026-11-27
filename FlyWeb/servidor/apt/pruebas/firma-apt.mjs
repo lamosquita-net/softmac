@@ -333,8 +333,9 @@ try {
   await pub('3.2.2-90', sha(d90), depsPub(210))
   ok(llamadas.every((l) => l[1] === 'comprobar') && llamadas.length === 2 && fs.readFileSync(aprob4, 'utf8') === lineas, 'publicar otra vez: no vuelve a firmar ni a apuntar, solo comprueba')
   fs.appendFileSync(aprob4, `${sha(d50)}  3.2.2-91  pruebas\n`)
-  await falla(() => pub('3.2.2-91', sha(d91), depsPub(220)), 'otro SHA-256', 'publicar se para si la versión ya está aprobada con otro SHA-256')
-  fs.writeFileSync(aprob4, lineas)
+  await falla(() => pub('3.2.2-91', sha(d91), depsPub(220)), "sed -i '/^" + sha(d50) + "[[:space:]]/Id'", 'publicar se para si la versión ya está aprobada con otro SHA-256 y dice qué línea quitar')
+  execFileSync('sed', ['-i', `/^${sha(d50).toUpperCase()}[[:space:]]/Id`, aprob4])
+  ok(fs.readFileSync(aprob4, 'utf8') === lineas && (fs.statSync(aprob4).mode & 0o777) === 0o644, 'la orden sed del mensaje quita solo esa línea (aunque el SHA-256 vaya en mayúsculas) y deja el modo')
   const antesStable = fs.readFileSync(path.join(sal4, 'stable', 'estado.json'))
   const viejoPruebas = (r) => r === 'dists/pruebas/InRelease' ? Buffer.from('InRelease viejo') : webDe(sal4)(r)
   llamadas.length = 0

@@ -34,6 +34,7 @@ import crypto from 'crypto'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
 const HOST = 'apt.flyweb.lamosquita.net'
 const POOL = 'pool/main/f/flyweb/'
@@ -480,7 +481,8 @@ function comprobarAprobados (f, uidRoot) {
 function apuntarAprobacion (f, sha, version, { ahora, log }) {
   const texto = fs.readFileSync(f, 'utf8')
   const otra = lineasAprobadas(texto).find((a) => a.version === version && a.sha !== sha)
-  if (otra) throw new Error(`la ${version} ya está aprobada en ${f} con otro SHA-256 (${otra.sha}): no se publica`)
+  if (otra) throw new Error(`la ${version} ya está aprobada en ${f} con otro SHA-256 (${otra.sha}): no se publica. Si ese SHA-256 ` +
+    `está mal y no se llegó a firmar, quita su línea (sudo sed -i '/^${otra.sha}[[:space:]]/Id' ${f}) y repite la orden`)
   if (aprobado(texto, sha, version, 'stable')) { log(`aprobación ya apuntada en ${f}`); return }
   fs.appendFileSync(f, `${texto && !texto.endsWith('\n') ? '\n' : ''}${sha}  ${version}  stable  # publicar, ${new Date(ahora).toISOString()}\n`)
   log(`aprobación apuntada en ${f}: ${sha}  ${version}  stable`)
@@ -522,7 +524,7 @@ export async function publicar (o, { comoUsuario = ejecutarComo, getuid = proces
 // Vuelve a ejecutar este mismo script como el usuario de firma, sin pasar por la shell.
 function ejecutarComo (usuario, args) {
   try {
-    execFileSync('runuser', ['-u', usuario, '--', process.execPath, new URL(import.meta.url).pathname, ...args], { stdio: ['ignore', 'inherit', 'pipe'] })
+    execFileSync('runuser', ['-u', usuario, '--', process.execPath, fileURLToPath(import.meta.url), ...args], { stdio: ['ignore', 'inherit', 'pipe'] })
   } catch (e) { throw new Error(String(e.stderr ?? '').trim().replace(/^ERROR: /, '') || e.message) }
 }
 
@@ -555,6 +557,6 @@ export async function ejecutar (argv, deps = {}) {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === new URL(import.meta.url).pathname) {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   ejecutar(process.argv.slice(2)).catch((e) => { console.error(`ERROR: ${e.message}`); process.exit(1) })
 }

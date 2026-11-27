@@ -110,8 +110,10 @@ valores tienen por defecto los de esta instalación:
 - `usuario=flywebfirma`
 
 **Al actualizar desde la versión de #1254:** basta con instalar el script nuevo y crear `apt.conf`. `estado.json` y los
-llaveros guardados sirven igual. Las líneas antiguas de `apt-aprobados`, sin tercera columna, ya solo valen para
-`pruebas`; como ya están firmadas, no importa.
+llaveros guardados sirven igual. **Las líneas antiguas de `apt-aprobados` (las de la 3.2.2-50 y la 3.2.2-51), sin
+tercera columna, ya solo valen para `pruebas`:** con ellas ya no se puede firmar `stable`. Esas dos versiones ya están
+firmadas, así que no hace falta tocarlas; para volver a firmar alguna en `stable` habría que añadir `stable` al final
+de su línea.
 
 **Subida a ns2:** clave SSH **propia** de `flywebfirma` (`flyweb-ns2-apt`, no la de Sparkle ni la de componentes) con
 `rrsync` en `/var/www/FlyWeb/apt`, solo desde la IP de bak, y alias en `~flywebfirma/.ssh/config` (`Host ns2-apt`). Esta
@@ -145,6 +147,21 @@ borrar ni sobrescribir.
 
    **Se puede repetir.** Lo que ya esté firmado con ese SHA-256 no se vuelve a firmar, solo se comprueba. Así, si se cortó
    la red a medias, la misma orden termina el trabajo.
+
+   **Si el SHA-256 de la orden estaba mal** (una errata, o el de otro `.deb`), `pruebas` se para con «`.deb` no
+   aprobado para pruebas» y no se firma nada; pero la línea mala se queda en `apt-aprobados`, y al repetir con el bueno
+   `publicar` se para con «ya está aprobada … con otro SHA-256». Entonces:
+   1. comprobar en la Ubuntu el SHA-256 bueno (`sha256sum` del `.deb` subido);
+   2. quitar la línea del SHA-256 malo, que el propio mensaje de error escribe entera:
+      ```sh
+      sudo sed -i '/^<sha256-malo>[[:space:]]/Id' /etc/flyweb-firma/apt-aprobados
+      ```
+      (borra solo las líneas que empiezan por ese SHA-256, en mayúsculas o minúsculas, y deja el dueño y el modo);
+   3. repetir la orden del paso 4 con el SHA-256 bueno.
+
+   Esto vale solo si con el SHA-256 malo **no se firmó nada**. Si se llegó a firmar (era el SHA-256 de un `.deb`
+   equivocado que sí estaba en ns2), la versión ya está publicada: no se quita la línea, se retira la versión
+   (abajo) y se publica otra con `build` nuevo.
 5. **En un equipo con FlyWeb:** `apt update` y `apt policy flyweb`; el candidato tiene que ser la versión nueva. Con
    `unattended-upgrades` llega sola, normalmente en un día; para no esperar, `sudo unattended-upgrade -d`.
 
@@ -232,7 +249,7 @@ sudo -u flywebfirma node /opt/flyweb-firma/firmar-apt.mjs caducidad --gnupghome 
 
 ## Pruebas
 
-`node pruebas/firma-apt.mjs` (sin red, con clave desechable v4; 98 comprobaciones). Cubre:
+`node pruebas/firma-apt.mjs` (sin red, con clave desechable v4; 99 comprobaciones). Cubre:
 - los rechazos: aprobación (también por suite), versión, `Package`, URL, `control` inyectado o con caracteres de control,
   `Date`, reloj, estado perdido y clave;
 - el SHA-256 antes de `dpkg-deb`, `Release` sin `Valid-Until` y que `gpgv` acepte el `InRelease` firmado por la subclave;
@@ -240,6 +257,7 @@ sudo -u flywebfirma node /opt/flyweb-firma/firmar-apt.mjs caducidad --gnupghome 
 - la rotación: se verifica también con el llavero de la más alta retirada;
 - `comprobar`, con un ns2 de mentira: lo firmado, un `InRelease` viejo y un `by-hash` que falta;
 - `publicar`: el orden pruebas → stable, que `stable` no se toque si `pruebas` no cuadra, repetir sin volver a firmar, y
-  los rechazos de sudo, permisos, `apt.conf` y SHA-256 en conflicto. Con
+  los rechazos de sudo, permisos, `apt.conf` y SHA-256 en conflicto (con la orden `sed` del mensaje, que quita solo
+  esa línea). Con
 `FLYWEB_APT_GUARDAR=<dir>` deja el repositorio para `pruebas/contenedores.sh` (`gpgv` de 22.04, `sqv` y `apt` en 22.04,
 24.04, Debian 12 y 26.04, con podman). El CI (`.github/workflows/flyweb-apt.yml`) corre las pruebas en ubuntu-22.04.
