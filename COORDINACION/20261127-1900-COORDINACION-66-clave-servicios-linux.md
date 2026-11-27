@@ -11,3 +11,16 @@
 - Encargado a D8-LINUX-6 un PR sin compilar: clave_servicios_fichero en el manifiesto de Linux y que la Release pare si
   CLAVE se queda en «flyweb». Titín pone la clave en la Ubuntu por su canal, en un fichero 0600, en la ruta que diga D8.
 - No se toca el servidor ni se abre Apache sin clave.
+
+## Actualización (27-11, noche)
+
+- PR #1288 fusionado (0f212e20): el manifiesto de Linux lee `clave_servicios_fichero` y la Release se para sin clave.
+- La clave ya está en la Ubuntu: /media/d8-trabajo/linux/flyweb-compila/claves/flyweb-services-key, de flyweb-compila,
+  0600, 65 B, idéntica según cmp. Pasó por la raíz de googledrive, que no se sincroniza, y D8 borró allí el origen con el sí
+  de Titín en su chat.
+- Falta: en el manifiesto de la próxima versión de Linux, la misma línea `clave_servicios_fichero`. Tras compilar,
+  comprobar en la Ubuntu que bajan los componentes (nilend…, aafcdj…, fmanio… y, por el catálogo, oncmal…) y que la
+  pestaña nueva cuenta.
+- Opcional, si Titín quiere: SSH 7,1 → Ubuntu (serebro, 192.168.1.15) con claude_lamosquita. Hoy el SSH de la Ubuntu
+  está apagado y no hay acceso.
+- Titín reitera: lo que COORDINACIÓN traslada como orden suya se acepta sin pedirle que lo repita.
