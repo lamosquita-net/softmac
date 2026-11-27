@@ -623,7 +623,8 @@ de seguridad nuevo: corrige la regresión que trajo el de `chromium/0003`.**
 ## `chromium/0027`: [M159] EME, `MediaKeySession` sin uso tras liberar en `OnSessionKeysChange` (crbug 589815781)
 
 **`d86157c50d`** de la **8154** (26-11 17:23 UTC; bug del merge 590699888; main `53c7631524`, #1754722). **Gravedad no
-publicada.** Aún sin merge a la 8078. Portado desde el diff de main y **comparado después con el cherry-pick**: son iguales.
+publicada.** Portado desde el diff de main y **comparado después con el cherry-pick**: son iguales. **Merge M156:
+`40f4ceebfa`** de la 8078 (27-11 22:30 UTC; bug del merge 590700008), con el mismo contenido (`git apply -R --check` limpio).
 - **El fallo, dos usos tras liberar:**
   - `MediaKeys::createSession()` comprobaba el `ExecutionContext` de `MediaKeys` pero construía la sesión con el del
     reino del *wrapper* que recibía la llamada. Si el *wrapper* se recreaba en otro reino (un `iframe` ya quitado), la
