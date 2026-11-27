@@ -1171,3 +1171,4 @@ buzon/LOCAL/20261120-1029-COORDINACION-53-fijadas-y-webs-LOCAL-21.md → LOCAL-2
 - buzon/NUBE-MOTOR/20261127-1303-COORDINACION-66-aviso-reiniciar-linux.md → MOTOR-47 · 2026-11-27 13:03 UTC · entregado por COORDINACIÓN-66 (SendMessage)
 - buzon/NUBE-MOTOR/20261127-1307-COORDINACION-66-flysync-y-modelo.md → MOTOR-47 · 2026-11-27 13:07 UTC · entregado por COORDINACIÓN-66 (SendMessage)
 - buzon/NUBE-MOTOR/20261127-1310-COORDINACION-66-flysync-pastilla.md → MOTOR-47 · 2026-11-27 13:10 UTC · entregado por COORDINACIÓN-66 (SendMessage)
+- buzon/NUBE-MOTOR/20261127-1312-COORDINACION-66-parche3-modelo/ → MOTOR-47 · 2026-11-27 13:12 UTC · entregado por COORDINACIÓN-66 (SendMessage)

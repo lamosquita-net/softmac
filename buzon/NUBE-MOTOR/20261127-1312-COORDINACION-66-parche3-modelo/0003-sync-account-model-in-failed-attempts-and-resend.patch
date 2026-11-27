@@ -1,0 +1,195 @@
+From a840e6239c3cd20c9ba3649bb87ced56ae6ca9cc Mon Sep 17 00:00:00 2001
+From: D8-LINUX <d8-linux@flyweb.invalid>
+Date: Fri, 27 Nov 2026 14:10:52 +0100
+Subject: [PATCH] sync account: model in failed-attempt warnings; resend this
+ computer model when the server has another
+
+---
+ app/brave_generated_resources.grd             |  7 +++-
+ .../brave_generated_resources_es-419.xtb      |  3 +-
+ .../brave_generated_resources_es.xtb          |  3 +-
+ .../brave_sync_page/flyweb_sync_account.ts    | 14 +++++--
+ .../account/flyweb_sync_account_service.cc    | 38 +++++++++++++++++++
+ .../account/flyweb_sync_account_service.h     |  4 ++
+ ...ave_settings_localized_strings_provider.cc |  2 +
+ 7 files changed, 64 insertions(+), 7 deletions(-)
+
+diff --git a/app/brave_generated_resources.grd b/app/brave_generated_resources.grd
+index ddb933e210dfc39a94837c0757921de7b617dfea..b71976fd930697e312df1b29d07a309cece61e96 100644
+--- a/app/brave_generated_resources.grd
++++ b/app/brave_generated_resources.grd
+@@ -325,8 +325,11 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>flyweb://settings/ex
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_GUESSED" desc="Account warning: the password was typed right on a new computer">
+         Someone typed your account password correctly on a new computer. If it wasn't you, change it now.
+       </message>
+-      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_FAILURES" desc="Account warning: failed password attempts">
+-        <ph name="COUNT">$1<ex>3</ex></ph> failed password attempts on your sync account.
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_FAILURES" desc="Account warning: failed password attempts, from a computer that did not say which it is">
++        <ph name="COUNT">$1<ex>3</ex></ph> failed password attempts on your sync account, from an unknown computer.
++      </message>
++      <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_FAILURES_FROM" desc="Account warning: failed password attempts, with the model (or name) the computer gave; not verified">
++        <ph name="COUNT">$1<ex>3</ex></ph> failed password attempts on your sync account, from a computer that identified itself as "<ph name="DEVICE">$2<ex>MacPro7,1</ex></ph>".
+       </message>
+       <message name="IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_CHANGED" desc="Account warning: password changed">
+         The password of your sync account was changed.
+diff --git a/app/resources/brave_generated_resources_es-419.xtb b/app/resources/brave_generated_resources_es-419.xtb
+index dc0886828a82fa695b05cb0d3a646248ddc07328..c8624b51c242a475f61481671074b2132af84924 100644
+--- a/app/resources/brave_generated_resources_es-419.xtb
++++ b/app/resources/brave_generated_resources_es-419.xtb
+@@ -865,7 +865,8 @@ de forma irreversible.</translation>
+ <translation id="53404978488023032">El servidor no ha entendido la petición. Revisa los datos (el nombre del equipo, como mucho 64 caracteres).</translation>
+ <translation id="7360943812201563549">Se ha añadido el equipo «<ph name="NAME"/>» a tu cuenta de sincronización.</translation>
+ <translation id="234093856005377496">Alguien ha escrito bien tu contraseña desde un equipo nuevo. Si no has sido tú, cámbiala ya.</translation>
+-<translation id="5538594588774012143"><ph name="COUNT"/> intentos fallidos de contraseña en tu cuenta de sincronización.</translation>
++<translation id="6905731833839684206"><ph name="COUNT"/> intentos fallidos de contraseña en tu cuenta de sincronización, desde un equipo desconocido.</translation>
++<translation id="4107238923756554821"><ph name="COUNT"/> intentos fallidos de contraseña en tu cuenta de sincronización, desde un equipo que dijo ser «<ph name="DEVICE"/>».</translation>
+ <translation id="3818291896622357075">Se ha cambiado la contraseña de tu cuenta de sincronización.</translation>
+ <translation id="4173358789701010590">Se ha cambiado el email de tu cuenta de sincronización.</translation>
+ <translation id="1125636197578699430">La clave de sincronización se ha cambiado desde otro equipo.</translation>
+diff --git a/app/resources/brave_generated_resources_es.xtb b/app/resources/brave_generated_resources_es.xtb
+index 6841d601b591c21bad8021ce3aac5c6238bc4bc4..4045b3626d5c3cc8e11d75b2478c6b4c287f50ed 100644
+--- a/app/resources/brave_generated_resources_es.xtb
++++ b/app/resources/brave_generated_resources_es.xtb
+@@ -864,7 +864,8 @@ de forma irreversible.</translation>
+ <translation id="53404978488023032">El servidor no ha entendido la petición. Revisa los datos (el nombre del equipo, como mucho 64 caracteres).</translation>
+ <translation id="7360943812201563549">Se ha añadido el equipo «<ph name="NAME"/>» a tu cuenta de sincronización.</translation>
+ <translation id="234093856005377496">Alguien ha escrito bien tu contraseña desde un equipo nuevo. Si no has sido tú, cámbiala ya.</translation>
+-<translation id="5538594588774012143"><ph name="COUNT"/> intentos fallidos de contraseña en tu cuenta de sincronización.</translation>
++<translation id="6905731833839684206"><ph name="COUNT"/> intentos fallidos de contraseña en tu cuenta de sincronización, desde un equipo desconocido.</translation>
++<translation id="4107238923756554821"><ph name="COUNT"/> intentos fallidos de contraseña en tu cuenta de sincronización, desde un equipo que dijo ser «<ph name="DEVICE"/>».</translation>
+ <translation id="3818291896622357075">Se ha cambiado la contraseña de tu cuenta de sincronización.</translation>
+ <translation id="4173358789701010590">Se ha cambiado el email de tu cuenta de sincronización.</translation>
+ <translation id="1125636197578699430">La clave de sincronización se ha cambiado desde otro equipo.</translation>
+diff --git a/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts b/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts
+index eadee47c2c9dd042b5c4ec27d7065949bb3eb0ee..a7242639b3579297f524aef6b4aff8d673d16e4d 100644
+--- a/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts
++++ b/browser/resources/settings/brave_sync_page/flyweb_sync_account.ts
+@@ -392,9 +392,17 @@ export class SettingsFlyWebSyncAccountElement
+         return this.i18n('flywebAccountWarningMacAdded', name)
+       case 'contrasena-acertada':
+         return this.i18n('flywebAccountWarningPasswordGuessed')
+-      case 'contrasena-fallos':
+-        return this.i18n(
+-            'flywebAccountWarningPasswordFailures', String(w.count))
++      case 'contrasena-fallos': {
++        // The name when the server knows the device (it came with a token);
++        // the model, as the computer gave it, always when there is one.
++        const device = w.mac && w.model && w.mac !== w.model ?
++            `${w.mac}, ${w.model}` :
++            (w.model || w.mac)
++        return device ?
++            this.i18n('flywebAccountWarningPasswordFailuresFrom',
++                      String(w.count), device) :
++            this.i18n('flywebAccountWarningPasswordFailures', String(w.count))
++      }
+       case 'contrasena-cambiada':
+         return this.i18n('flywebAccountWarningPasswordChanged')
+       case 'email-cambiado':
+diff --git a/browser/sync/account/flyweb_sync_account_service.cc b/browser/sync/account/flyweb_sync_account_service.cc
+index 7fdf339f81a0bf8aa4a9599cd67237cbbd1f5ef2..13f0afaf76cd93c83b0abfd73f38241c8c0b42ee 100644
+--- a/browser/sync/account/flyweb_sync_account_service.cc
++++ b/browser/sync/account/flyweb_sync_account_service.cc
+@@ -1389,6 +1389,9 @@ void AccountService::ResendCode(AccountCallback callback) {
+       spec.route = "entrar/empezar";
+       spec.body.Set("email", flow_->email);
+       spec.body.Set("kl", B64(flow_->keys->login_key.bytes()));
++      // Only for the failed-attempt warning: the server shows it as this
++      // computer gave it, without taking it as verified.
++      spec.body.Set("modelo", DeviceModel());
+       break;
+     case Flow::Kind::kPasswordChange:
+       spec.route = "contrasena/codigo";
+@@ -1615,6 +1618,7 @@ void AccountService::LoginStart(const std::string& email,
+             spec.route = "entrar/empezar";
+             spec.body.Set("email", email);
+             spec.body.Set("kl", B64(self->flow_->keys->login_key.bytes()));
++            spec.body.Set("modelo", DeviceModel());
+             self->Call(
+                 std::move(spec),
+                 base::BindOnce(
+@@ -2283,6 +2287,7 @@ void AccountService::ListDevices(AccountCallback callback) {
+              if (self && r.ok) {
+                if (const base::ListValue* list = r.data.FindList("aparatos")) {
+                  self->devices_ = list->Clone();
++                 self->UpdateModelIfChanged();
+                }
+                self->NotifyStatus();
+              }
+@@ -2291,6 +2296,39 @@ void AccountService::ListDevices(AccountCallback callback) {
+            weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+ }
+ 
++// The server keeps the model this computer sent when it joined (3.2.2-50 on
++// Linux sent «Mac»). If the list says another one, send DeviceModel() once per
++// run; a server without aparatos/modelo answers 404 and nothing else happens.
++void AccountService::UpdateModelIfChanged() {
++  if (model_update_sent_ || token_.empty()) {
++    return;
++  }
++  const std::string model = DeviceModel();
++  for (const base::Value& v : devices_) {
++    if (!v.is_dict() || !v.GetDict().FindBool("este").value_or(false)) {
++      continue;
++    }
++    if (GetStr(v.GetDict(), "modelo") == model) {
++      return;
++    }
++    model_update_sent_ = true;
++    CallSpec spec;
++    spec.route = "aparatos/modelo";
++    spec.op = "aparatos-modelo";
++    spec.auth = Auth::kToken;
++    spec.body.Set("modelo", model);
++    Call(std::move(spec),
++         base::BindOnce(
++             [](base::WeakPtr<AccountService> self, AccountResult r) {
++               if (self && r.ok) {
++                 self->ListDevices(base::DoNothing());
++               }
++             },
++             weak_ptr_factory_.GetWeakPtr()));
++    return;
++  }
++}
++
+ void AccountService::RemoveDevice(const std::string& device_id,
+                                   AccountCallback callback) {
+   if (!BeginOperation(callback)) {
+diff --git a/browser/sync/account/flyweb_sync_account_service.h b/browser/sync/account/flyweb_sync_account_service.h
+index f1f56ca81cd79835fc37bac81a7bcc3d38b2da92..b8d4083c51f8d0907c6e465f94e57ffbdae00f0e 100644
+--- a/browser/sync/account/flyweb_sync_account_service.h
++++ b/browser/sync/account/flyweb_sync_account_service.h
+@@ -178,6 +178,8 @@ class AccountService : public KeyedService,
+   // New seed (data.recoveryWords), every other Mac has to log in again.
+   void ChainChange(std::string password, AccountCallback callback);
+   void ListDevices(AccountCallback callback);
++  // After a listing: sends this computer's model if the server has another.
++  void UpdateModelIfChanged();
+   void RemoveDevice(const std::string& device_id, AccountCallback callback);
+   void RenameDevice(const std::string& device_id,
+                     const std::string& name,
+@@ -362,6 +364,8 @@ class AccountService : public KeyedService,
+   base::TimeDelta poll_backoff_;
+   bool polling_ = false;
+   bool registering_ = false;
++  // aparatos/modelo already sent in this run (right or wrong, only once).
++  bool model_update_sent_ = false;
+   // After joining an account, the first successful poll reads the account's
+   // history without warnings: events up to `baseline_until_` (the joining
+   // plus kBaselineMargin). Kept in a pref until that poll succeeds, so a
+diff --git a/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc b/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc
+index d6d306a93641b892278e99fba686a71491ad29c0..ef3278e0b040bc22de5507cf4efad84be601a95f 100644
+--- a/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc
++++ b/browser/ui/webui/settings/brave_settings_localized_strings_provider.cc
+@@ -473,6 +473,8 @@ void BraveAddCommonStrings(content::WebUIDataSource* html_source,
+        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_GUESSED},
+       {"flywebAccountWarningPasswordFailures",
+        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_FAILURES},
++      {"flywebAccountWarningPasswordFailuresFrom",
++       IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_FAILURES_FROM},
+       {"flywebAccountWarningPasswordChanged",
+        IDS_FLYWEB_SYNC_ACCOUNT_WARNING_PASSWORD_CHANGED},
+       {"flywebAccountWarningEmailChanged",
+-- 
+2.53.0
+
