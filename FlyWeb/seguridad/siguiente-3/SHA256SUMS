@@ -52,3 +52,4 @@ f3846f7cfba1fc28f907c42e5ef7d9cdf2b8ab0526ebf09700d425eb21c4ad8c  chromium/0032-
 d4cca4e9786d0f4ed00be4f7b20337d178b35125c9ba7de15dcc3cd09bef9044  chromium/0033-M156-Reland-disk_cache-Use-rename-in-POSIX-MoveCache.patch
 a9ef6fa394da993efd9617dd640c9ca3e52daa47aea255f41c7b38c1cef58776  chromium/0034-M159-HistoryClusters-Fix-UAF-in-OnUkmNavigationCompl.patch
 2cd31985591d34c0096dd7af747913d4606a032dd51ef31a4d19f62600f8b004  chromium/0035-M159-lens-Only-focus-overlay-WebView-when-tab-is-act.patch
+73793c661eda6035089e773ebe0d67c2d4d7d478d7692db5c4b0145ced721414  chromium/0036-M159-Scope-AcceptCHFrameObserver-lifetime-to-the-act.patch
