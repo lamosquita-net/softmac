@@ -1,0 +1,862 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eva Su <evasu@chromium.org>
+Date: Mon, 23 Nov 2026 21:35:07 +0000
+Subject: [PATCH 2/5] [M156] [Extensions] Validate pending script input in
+ ScriptInjectionTracker
+
+Original change's description:
+> [Extensions] Validate pending script input in ScriptInjectionTracker
+>
+> Previously, ScriptInjectionTracker::WillExecuteCode() for
+> ExtensionActionRunner unconditionally recorded a content script
+> execution for the target renderer process when handling
+> RequestScriptInjectionPermission() or running pending scripts. It did
+> not verify whether the browser had actually dispatched a withheld
+> programmatic or declarative JavaScript injection to that frame, or
+> whether the extension had matching content scripts.
+>
+> Update ScriptExecutor and RequestContentScript to record withheld
+> JavaScript injections as pending in ScriptInjectionTracker when
+> dispatched. ScriptInjectionTracker now validates this pending state
+> before marking the renderer process as having executed a content or user
+> script from the extension.
+>
+> Fixed: 580475500
+> Change-Id: I7f835593877f0ea369ab401da877703143c12152
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8719354
+> Reviewed-by: Justin Lulejian <jlulejian@chromium.org>
+> Commit-Queue: Eva Su <evasu@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1739471}
+
+(cherry picked from commit b69b21e7b8d6f82e2a11746fa39b2aff57ae7ef8)
+
+Fixed: 584119509
+Change-Id: I7f835593877f0ea369ab401da877703143c12152
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8785884
+Commit-Queue: Eva Su <evasu@chromium.org>
+Reviewed-by: Eva Su <evasu@chromium.org>
+Reviewed-by: Tim <tjudkins@chromium.org>
+Reviewed-by: Justin Lulejian <jlulejian@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2395}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+FlyWeb: the 8078 (M156) merge efd6465a7b, applied to the 156 tree.
+Only chrome/browser/extensions/script_injection_tracker_browsertest.cc
+differs: its include block is older in 156, so the new includes are
+added by hand (same set as upstream).
+---
+ .../api/declarative_content/content_action.cc |   6 +-
+ .../extension_action_runner_unittest.cc       |  64 ++++
+ .../script_injection_tracker_browsertest.cc   | 284 ++++++++++++++++++
+ extensions/browser/script_executor.cc         |  51 +++-
+ .../browser/script_injection_tracker.cc       | 133 +++++++-
+ extensions/browser/script_injection_tracker.h |  14 +-
+ 6 files changed, 517 insertions(+), 35 deletions(-)
+
+diff --git a/chrome/browser/extensions/api/declarative_content/content_action.cc b/chrome/browser/extensions/api/declarative_content/content_action.cc
+index fed023ba09..aabd6a4875 100644
+--- a/chrome/browser/extensions/api/declarative_content/content_action.cc
++++ b/chrome/browser/extensions/api/declarative_content/content_action.cc
+@@ -399,8 +399,10 @@ void RequestContentScript::InstructRenderProcessToInject(
+     return;
+   }
+ 
+-  ScriptInjectionTracker::WillExecuteCode(base::PassKey<RequestContentScript>(),
+-                                          main_frame, *extension);
++  if (!script_.js_scripts().empty()) {
++    ScriptInjectionTracker::WillExecuteCode(
++        base::PassKey<RequestContentScript>(), main_frame, *extension);
++  }
+   local_frame->ExecuteDeclarativeScript(
+       sessions::SessionTabHelper::IdForTab(contents).id(), extension->id(),
+       script_.id(), url);
+diff --git a/chrome/browser/extensions/extension_action_runner_unittest.cc b/chrome/browser/extensions/extension_action_runner_unittest.cc
+index ef5798d91f..9d088ad3ee 100644
+--- a/chrome/browser/extensions/extension_action_runner_unittest.cc
++++ b/chrome/browser/extensions/extension_action_runner_unittest.cc
+@@ -26,6 +26,7 @@
+ #include "extensions/browser/permissions/active_tab_permission_granter.h"
+ #include "extensions/browser/permissions/permissions_updater.h"
+ #include "extensions/browser/permissions/scripting_permissions_modifier.h"
++#include "extensions/browser/script_injection_tracker.h"
+ #include "extensions/buildflags/buildflags.h"
+ #include "extensions/common/extension.h"
+ #include "extensions/common/extension_builder.h"
+@@ -585,4 +586,67 @@ TEST_F(ExtensionActionRunnerUnitTest, TestWebRequestBlocked) {
+   EXPECT_FALSE(runner()->WantsToRun(extension));
+ }
+ 
++// Tests that `OnRequestScriptInjectionPermission` does not record script
++// execution in `ScriptInjectionTracker` when the extension has no matching
++// content scripts and no pending browser-dispatched programmatic script
++// injection.
++TEST_F(ExtensionActionRunnerUnitTest,
++       UnrequestedScriptPermissionDoesNotUpdateTracker) {
++  const Extension* extension = AddExtension();
++  ASSERT_TRUE(extension);
++  NavigateAndCommit(GURL("https://www.google.com"));
++
++  // Request permission for a programmatic injection while host permissions are
++  // withheld, without any browser-initiated injection having been dispatched.
++  runner()->OnRequestScriptInjectionPermission(
++      main_rfh(), extension->id(), mojom::InjectionType::kProgrammaticScript,
++      mojom::RunLocation::kDocumentIdle, base::DoNothing());
++
++  {
++    PermissionsManagerWaiter waiter(PermissionsManager::Get(profile()));
++    runner()->RunForTesting(extension);
++    waiter.WaitForActiveTabPermissionGranted(extension->id());
++  }
++
++  // Because no programmatic injection was initiated by the browser, the
++  // process must not be marked as having executed a content script from the
++  // extension.
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *main_rfh()->GetProcess(), extension->id()));
++
++  // Grant host permissions and verify that direct permission requests in the
++  // allowed state also do not update the tracker when no script was
++  // dispatched.
++  ScriptingPermissionsModifier(profile(), extension)
++      .SetWithholdHostPermissions(false);
++  runner()->OnRequestScriptInjectionPermission(
++      main_rfh(), extension->id(), mojom::InjectionType::kContentScript,
++      mojom::RunLocation::kDocumentIdle, base::DoNothing());
++  runner()->OnRequestScriptInjectionPermission(
++      main_rfh(), extension->id(), mojom::InjectionType::kProgrammaticScript,
++      mojom::RunLocation::kDocumentIdle, base::DoNothing());
++
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *main_rfh()->GetProcess(), extension->id()));
++
++  // Conversely, an extension that actually declares a matching JS content
++  // script updates the tracker when content script permission is requested.
++  scoped_refptr<const Extension> content_script_extension =
++      ExtensionBuilder("content_script_extension")
++          .AddContentScript("script.js", {kAllHostsPermission})
++          .SetLocation(mojom::ManifestLocation::kInternal)
++          .Build();
++  ASSERT_TRUE(content_script_extension);
++  ExtensionRegistry::Get(profile())->AddEnabled(content_script_extension);
++  PermissionsUpdater(profile()).InitializePermissions(
++      content_script_extension.get());
++
++  runner()->OnRequestScriptInjectionPermission(
++      main_rfh(), content_script_extension->id(),
++      mojom::InjectionType::kContentScript, mojom::RunLocation::kDocumentIdle,
++      base::DoNothing());
++  EXPECT_TRUE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *main_rfh()->GetProcess(), content_script_extension->id()));
++}
++
+ }  // namespace extensions
+diff --git a/chrome/browser/extensions/script_injection_tracker_browsertest.cc b/chrome/browser/extensions/script_injection_tracker_browsertest.cc
+index fa09d02004..e122a5b4d9 100644
+--- a/chrome/browser/extensions/script_injection_tracker_browsertest.cc
++++ b/chrome/browser/extensions/script_injection_tracker_browsertest.cc
+@@ -4,6 +4,7 @@
+ 
+ #include "extensions/browser/script_injection_tracker.h"
+ 
++#include <optional>
+ #include <string>
+ #include <string_view>
+ #include <vector>
+@@ -13,8 +14,10 @@
+ #include "base/run_loop.h"
+ #include "base/strings/stringprintf.h"
+ #include "base/test/bind.h"
++#include "base/test/metrics/histogram_tester.h"
+ #include "base/test/run_until.h"
+ #include "base/test/scoped_feature_list.h"
++#include "base/test/test_future.h"
+ #include "base/trace_event/trace_log.h"
+ #include "build/buildflag.h"
+ #include "chrome/browser/apps/platform_apps/app_browsertest_util.h"
+@@ -56,10 +59,16 @@
+ #include "extensions/browser/permissions/scripting_permissions_modifier.h"
+ #include "extensions/browser/permissions_manager.h"
+ #include "extensions/browser/process_manager.h"
++#include "extensions/browser/script_executor.h"
+ #include "extensions/browser/user_script_manager.h"
+ #include "extensions/common/extension_features.h"
+ #include "extensions/common/features/feature_channel.h"
+ #include "extensions/common/manifest_handlers/permissions_parser.h"
++#include "extensions/common/mojom/code_injection.mojom.h"
++#include "extensions/common/mojom/execution_world.mojom-shared.h"
++#include "extensions/common/mojom/host_id.mojom.h"
++#include "extensions/common/mojom/match_origin_as_fallback.mojom-shared.h"
++#include "extensions/common/mojom/run_location.mojom-shared.h"
+ #include "extensions/common/url_pattern.h"
+ #include "extensions/common/url_pattern_set.h"
+ #include "extensions/test/extension_test_message_listener.h"
+@@ -72,6 +81,7 @@
+ #include "net/test/embedded_test_server/embedded_test_server.h"
+ #include "testing/gmock/include/gmock/gmock.h"
+ #include "testing/gtest/include/gtest/gtest.h"
++#include "third_party/blink/public/mojom/script/script_evaluation_params.mojom-shared.h"
+ #include "ui/base/window_open_disposition.h"
+ #include "url/gurl.h"
+ #include "url/origin.h"
+@@ -544,6 +554,77 @@ IN_PROC_BROWSER_TEST_F(
+       *subframe_process, extension->id()));
+ }
+ 
++// Tests that `OnRequestScriptInjectionPermission` does not mark a renderer
++// process as having executed a script from an extension when the extension has
++// host permissions for the page, but has no matching content scripts and has
++// not initiated a programmatic script injection.
++IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerBrowserTest,
++                       UnrequestedScriptPermissionDoesNotUpdateTracker) {
++  ASSERT_TRUE(embedded_test_server()->Start());
++
++  TestExtensionDir dir;
++  const char kManifest[] = R"(
++      {
++        "name": "UnrequestedScriptPermissionDoesNotUpdateTracker",
++        "version": "1.0",
++        "manifest_version": 3,
++        "permissions": ["storage"],
++        "host_permissions": ["http://foo.com/*"]
++      } )";
++  dir.WriteManifest(kManifest);
++  const Extension* extension = LoadExtension(dir.UnpackedPath());
++  ASSERT_TRUE(extension);
++
++  GURL page_url = embedded_test_server()->GetURL("foo.com", "/title1.html");
++  content::WebContents* web_contents = GetActiveWebContents();
++  ASSERT_TRUE(NavigateToURL(web_contents, page_url));
++
++  content::RenderFrameHost* main_frame = web_contents->GetPrimaryMainFrame();
++  content::RenderProcessHost* page_process = main_frame->GetProcess();
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *page_process, extension->id()));
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunUserScriptFromExtension(
++      *page_process, extension->id()));
++
++  ExtensionActionRunner* runner =
++      ExtensionActionRunner::GetForWebContents(web_contents);
++  ASSERT_TRUE(runner);
++
++  for (mojom::InjectionType type :
++       {mojom::InjectionType::kContentScript,
++        mojom::InjectionType::kProgrammaticScript}) {
++    runner->OnRequestScriptInjectionPermission(
++        main_frame, extension->id(), type, mojom::RunLocation::kDocumentIdle,
++        base::DoNothing());
++    EXPECT_FALSE(
++        ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++            *page_process, extension->id()));
++    EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunUserScriptFromExtension(
++        *page_process, extension->id()));
++  }
++
++  // Withhold host permissions and verify that queued permission requests also
++  // do not update the tracker when no script injection was dispatched by the
++  // browser.
++  {
++    PermissionsManagerWaiter waiter(PermissionsManager::Get(profile()));
++    ScriptingPermissionsModifier(profile(), extension)
++        .SetWithholdHostPermissions(true);
++    waiter.WaitForExtensionPermissionsUpdate();
++  }
++
++  runner->OnRequestScriptInjectionPermission(
++      main_frame, extension->id(), mojom::InjectionType::kProgrammaticScript,
++      mojom::RunLocation::kDocumentIdle, base::DoNothing());
++  EXPECT_TRUE(runner->WantsToRun(extension));
++
++  runner->RunAction(extension, /*grant_tab_permissions=*/true);
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *page_process, extension->id()));
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunUserScriptFromExtension(
++      *page_process, extension->id()));
++}
++
+ // Tests tracking of user scripts through the ScriptExecutor.
+ // The vast majority of implementation is the same for content script and user
+ // script tracking, so this is the main spot we explicitly test user script
+@@ -614,6 +695,74 @@ IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerBrowserTest,
+       *web_contents->GetPrimaryMainFrame()->GetProcess(), extension->id()));
+ }
+ 
++// Tests that a programmatic user script injection deferred because host
++// permissions are withheld is recorded as `kUserScript` (and not
++// `kContentScript`) once the user grants access.
++IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerBrowserTest,
++                       ProgrammaticUserScript_WithheldHostPermission) {
++  ASSERT_TRUE(embedded_test_server()->Start());
++
++  TestExtensionDir dir;
++  const char kManifest[] = R"(
++      {
++        "name": "ProgrammaticUserScript_WithheldHostPermission",
++        "version": "1.0",
++        "manifest_version": 3,
++        "host_permissions": ["http://foo.com/*"]
++      } )";
++  dir.WriteManifest(kManifest);
++  const Extension* extension = LoadExtension(dir.UnpackedPath());
++  ASSERT_TRUE(extension);
++
++  ScriptingPermissionsModifier(profile(), extension)
++      .SetWithholdHostPermissions(true);
++
++  GURL page_url = embedded_test_server()->GetURL("foo.com", "/title1.html");
++  content::WebContents* web_contents = GetActiveWebContents();
++  ASSERT_TRUE(NavigateToURL(web_contents, page_url));
++
++  content::RenderProcessHost* page_process =
++      web_contents->GetPrimaryMainFrame()->GetProcess();
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunUserScriptFromExtension(
++      *page_process, extension->id()));
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *page_process, extension->id()));
++
++  ExtensionActionRunner* runner =
++      ExtensionActionRunner::GetForWebContents(web_contents);
++  ASSERT_TRUE(runner);
++
++  content::DOMMessageQueue message_queue(web_contents);
++  {
++    BlockedActionWaiter blocked_action_waiter(runner);
++    static constexpr char kUserScript[] = R"(
++        document.body.innerText = 'user script has run';
++        domAutomationController.send('injected');
++    )";
++    browsertest_util::ExecuteUserScriptNoWait(web_contents, extension->id(),
++                                              kUserScript);
++    blocked_action_waiter.Wait();
++  }
++
++  EXPECT_TRUE(runner->WantsToRun(extension));
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunUserScriptFromExtension(
++      *page_process, extension->id()));
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *page_process, extension->id()));
++
++  runner->RunAction(extension, /*grant_tab_permissions=*/true);
++  std::string msg;
++  ASSERT_TRUE(message_queue.WaitForMessage(&msg));
++  EXPECT_EQ("\"injected\"", msg);
++
++  EXPECT_EQ("user script has run",
++            content::EvalJs(web_contents, "document.body.innerText"));
++  EXPECT_TRUE(ScriptInjectionTracker::DidProcessRunUserScriptFromExtension(
++      *page_process, extension->id()));
++  EXPECT_FALSE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *page_process, extension->id()));
++}
++
+ IN_PROC_BROWSER_TEST_F(
+     ScriptInjectionTrackerBrowserTest,
+     ProgrammaticContentScript_CrossOriginSubframe_NoPermission) {
+@@ -744,6 +893,141 @@ IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerBrowserTest,
+       *web_contents->GetPrimaryMainFrame()->GetProcess(), extension->id()));
+ }
+ 
++// Tests that `ScriptInjectionTracker` records a programmatic content script
++// that the browser sends to a subframe while the subframe's first navigation
++// commit is in flight. The browser still sees the subframe's initial empty
++// document, but the renderer runs the script in the new document, where the
++// extension has host access. The injection uses
++// `mojom::MatchOriginAsFallbackBehavior::kNever`, which is what
++// `chrome.tabs.executeScript({frameId, matchAboutBlank: false})` sends.
++// Expected behavior:
++// - The script runs in the new document.
++// - The subframe's process is recorded as having run a content script from
++//   the extension.
++// - A message from the script reaches the extension, and the renderer is not
++//   killed.
++IN_PROC_BROWSER_TEST_F(ScriptInjectionTrackerBrowserTest,
++                       ProgrammaticScriptRacingWithSubframeCommit) {
++  ASSERT_TRUE(embedded_test_server()->Start());
++
++  // Load an extension that has host access to foo.com, has no content scripts,
++  // and forwards messages from content scripts to the test.
++  TestExtensionDir dir;
++  dir.WriteManifest(R"(
++      {
++        "name": "ScriptInjectionTrackerBrowserTest - subframe commit race",
++        "version": "1.0",
++        "manifest_version": 3,
++        "host_permissions": ["http://foo.com/*"],
++        "background": {"service_worker": "background.js"}
++      } )");
++  dir.WriteFile(FILE_PATH_LITERAL("background.js"), R"(
++      chrome.runtime.onMessage.addListener((message) => {
++        chrome.test.sendMessage(message);
++      });
++  )");
++  const Extension* extension = LoadExtension(dir.UnpackedPath());
++  ASSERT_TRUE(extension);
++
++  // Open a foo.com page with a same-origin subframe that only has its initial
++  // empty document.
++  content::WebContents* web_contents = GetActiveWebContents();
++  ASSERT_TRUE(NavigateToURL(
++      web_contents, embedded_test_server()->GetURL("foo.com", "/title1.html")));
++  ASSERT_TRUE(content::ExecJs(web_contents, R"(
++      const iframe = document.createElement('iframe');
++      iframe.id = 'child';
++      document.body.appendChild(iframe);
++  )"));
++  content::RenderFrameHost* child_frame =
++      content::ChildFrameAt(web_contents->GetPrimaryMainFrame(), 0);
++  ASSERT_TRUE(child_frame);
++  content::RenderProcessHost* process = child_frame->GetProcess();
++  ASSERT_FALSE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *process, extension->id()));
++
++  // Navigate the subframe. Just before the browser handles the subframe's
++  // `DidCommitNavigation` (the renderer has already committed the new
++  // document), send the script to the subframe.
++  GURL child_url = embedded_test_server()->GetURL("foo.com", "/title2.html");
++  const int child_frame_id = ExtensionApiFrameIdMap::GetFrameId(child_frame);
++  ScriptExecutor script_executor(web_contents);
++  base::test::TestFuture<std::vector<ScriptExecutor::FrameResult>>
++      script_future;
++  content::CommitMessageDelayer commit_delayer(
++      web_contents, child_url,
++      base::BindLambdaForTesting([&](content::RenderFrameHost* frame) {
++        // The first navigation reuses the initial empty document's frame
++        // host, and the browser has not seen the new URL yet.
++        EXPECT_EQ(child_frame, frame);
++        EXPECT_TRUE(frame->GetLastCommittedURL().is_empty() ||
++                    frame->GetLastCommittedURL().IsAboutBlank())
++            << frame->GetLastCommittedURL();
++        std::vector<mojom::JSSourcePtr> sources;
++        sources.push_back(mojom::JSSource::New(R"(
++            window.addEventListener('message', (event) => {
++              if (event.data === 'send-ping') {
++                chrome.runtime.sendMessage('ping');
++              }
++            });
++        )",
++                                               GURL()));
++        script_executor.ExecuteScript(
++            mojom::HostID(mojom::HostID::HostType::kExtensions,
++                          extension->id()),
++            mojom::CodeInjection::NewJs(mojom::JSInjection::New(
++                std::move(sources), mojom::ExecutionWorld::kIsolated,
++                /*world_id=*/std::nullopt,
++                blink::mojom::WantResultOption::kWantResult,
++                blink::mojom::UserActivationOption::kDoNotActivate,
++                blink::mojom::PromiseResultOption::kDoNotWait)),
++            ScriptExecutor::SPECIFIED_FRAMES, {child_frame_id},
++            mojom::MatchOriginAsFallbackBehavior::kNever,
++            mojom::RunLocation::kDocumentIdle, ScriptExecutor::DEFAULT_PROCESS,
++            /*webview_src=*/GURL(), script_future.GetCallback());
++      }));
++  content::ExecuteScriptAsync(
++      web_contents,
++      content::JsReplace("document.getElementById('child').src = $1;",
++                         child_url));
++  {
++    SCOPED_TRACE("Waiting for the subframe commit");
++    commit_delayer.Wait();
++  }
++
++  // The script ran in the new document.
++  {
++    SCOPED_TRACE("Waiting for the script result");
++    ASSERT_TRUE(script_future.Wait());
++  }
++  const std::vector<ScriptExecutor::FrameResult>& results = script_future.Get();
++  ASSERT_EQ(1u, results.size());
++  ASSERT_EQ("", results[0].error);
++  ASSERT_EQ(child_url, results[0].url);
++
++  // The process that ran the script is recorded as having run a content script
++  // from the extension.
++  EXPECT_TRUE(ScriptInjectionTracker::DidProcessRunContentScriptFromExtension(
++      *process, extension->id()));
++
++  // Ask the script to message the extension. Wait until the message arrives or
++  // the renderer is killed.
++  base::HistogramTester histograms;
++  ExtensionTestMessageListener ping_listener("ping");
++  content::ExecuteScriptAsync(
++      content::ChildFrameAt(web_contents->GetPrimaryMainFrame(), 0),
++      "window.postMessage('send-ping', '*');");
++  {
++    SCOPED_TRACE("Waiting for the message or a renderer kill");
++    ASSERT_TRUE(base::test::RunUntil([&]() {
++      return ping_listener.was_satisfied() ||
++             !process->IsInitializedAndNotDead();
++    }));
++  }
++  EXPECT_TRUE(ping_listener.was_satisfied());
++  histograms.ExpectTotalCount("Stability.BadMessageTerminated.Extensions", 0);
++}
++
+ // Tests tracking of content scripts injected/declared via `content_scripts`
+ // entry in the extension manifest.  See also:
+ // https://developer.chrome.com/docs/extensions/mv3/content_scripts/#static-declarative
+diff --git a/extensions/browser/script_executor.cc b/extensions/browser/script_executor.cc
+index 8f889305e1..fbaee3a91b 100644
+--- a/extensions/browser/script_executor.cc
++++ b/extensions/browser/script_executor.cc
+@@ -27,11 +27,13 @@
+ #include "content/public/browser/render_view_host.h"
+ #include "content/public/browser/web_contents.h"
+ #include "content/public/browser/web_contents_observer.h"
++#include "extensions/browser/browser_frame_context_data.h"
+ #include "extensions/browser/extension_api_frame_id_map.h"
+ #include "extensions/browser/extension_registry.h"
+ #include "extensions/browser/extension_web_contents_observer.h"
+ #include "extensions/browser/script_injection_tracker.h"
+ #include "extensions/browser/scripting_utils.h"
++#include "extensions/common/content_script_injection_url_getter.h"
+ #include "extensions/common/mojom/host_id.mojom.h"
+ #include "extensions/common/mojom/match_origin_as_fallback.mojom-shared.h"
+ #include "extensions/common/permissions/permissions_data.h"
+@@ -305,32 +307,49 @@ class Handler : public content::WebContentsObserver {
+ 
+       // When the extension's host permission for `frame`'s document is
+       // withheld, the renderer defers execution and asks the browser for
+-      // permission instead of running the script. In that case the
+-      // ScriptInjectionTracker is updated by ExtensionActionRunner if and when
+-      // the user grants access and the deferred script is permitted to run.
+-      bool record_injection = true;
++      // permission instead of running the script. In that case
++      // ScriptInjectionTracker records a pending injection that is only
++      // finalized by ExtensionActionRunner (or permission updates) if and
++      // when access is granted. Otherwise (including when page_access is
++      // kDenied, since a navigation commit to an allowed document may already
++      // be in flight from the renderer), record the injection immediately so
++      // the renderer is not terminated as a bad message sender if the script
++      // runs.
++      bool is_withheld = false;
+       if (!is_web_view_ && extension) {
+         GURL url = frame->GetLastCommittedURL();
++        content::NavigationEntry* pending_entry =
++            frame->IsInPrimaryMainFrame()
++                ? web_contents()->GetController().GetPendingEntry()
++                : nullptr;
+         if (url.is_empty() || url.SchemeIs(url::kAboutScheme)) {
+-          content::NavigationEntry* pending_entry =
+-              web_contents()->GetController().GetPendingEntry();
+           if (pending_entry && !pending_entry->GetURL().is_empty()) {
+             url = pending_entry->GetURL();
+-          } else {
+-            url = frame->GetLastCommittedOrigin().GetURL();
++          } else if (url.is_empty() &&
++                     (!frame->IsInPrimaryMainFrame() ||
++                      !frame->GetLastCommittedOrigin().opaque())) {
++            url = GURL(url::kAboutBlankURL);
+           }
+         }
+         if (!url.is_empty()) {
+-          record_injection = (extension->permissions_data()->GetPageAccess(
+-                                  url, tab_id,
+-                                  /*error=*/nullptr) !=
+-                              PermissionsData::PageAccess::kWithheld);
++          GURL effective_url = ContentScriptInjectionUrlGetter::Get(
++              BrowserFrameContextData(frame), url,
++              params->match_origin_as_fallback_behavior,
++              /*allow_inaccessible_parents=*/true);
++          PermissionsData::PageAccess page_access =
++              extension->permissions_data()->GetPageAccess(effective_url,
++                                                           tab_id,
++                                                           /*error=*/nullptr);
++          if (page_access == PermissionsData::PageAccess::kDenied &&
++              pending_entry && !pending_entry->GetURL().is_empty()) {
++            page_access = extension->permissions_data()->GetPageAccess(
++                pending_entry->GetURL(), tab_id, /*error=*/nullptr);
++          }
++          is_withheld = (page_access == PermissionsData::PageAccess::kWithheld);
+         }
+       }
+-      if (record_injection) {
+-        ScriptInjectionTracker::WillExecuteCode(pass_key, script_type, frame,
+-                                                host_id_);
+-      }
++      ScriptInjectionTracker::WillExecuteCode(pass_key, script_type, frame,
++                                              host_id_, is_withheld);
+     }
+     ExtensionWebContentsObserver::GetForWebContents(web_contents())
+         ->GetLocalFrameChecked(frame)
+diff --git a/extensions/browser/script_injection_tracker.cc b/extensions/browser/script_injection_tracker.cc
+index ce5232db85..c05d8ed35f 100644
+--- a/extensions/browser/script_injection_tracker.cc
++++ b/extensions/browser/script_injection_tracker.cc
+@@ -5,6 +5,9 @@
+ #include "extensions/browser/script_injection_tracker.h"
+ 
+ #include <algorithm>
++#include <map>
++#include <set>
++#include <utility>
+ 
+ #include "base/check_is_test.h"
+ #include "base/debug/crash_logging.h"
+@@ -71,6 +74,12 @@ class RenderProcessHostUserData : public base::SupportsUserData::Data {
+         process.GetUserData(kUserDataKey));
+   }
+ 
++  static RenderProcessHostUserData* Get(content::RenderProcessHost& process) {
++    DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
++    return static_cast<RenderProcessHostUserData*>(
++        process.GetUserData(kUserDataKey));
++  }
++
+   static RenderProcessHostUserData& GetOrCreate(
+       content::RenderProcessHost& process) {
+     DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+@@ -113,10 +122,52 @@ class RenderProcessHostUserData : public base::SupportsUserData::Data {
+     GetScripts(script_type).insert(extension_id);
+   }
+ 
++  void AddPendingScript(content::GlobalRenderFrameHostId frame_id,
++                        mojom::InjectionType injection_type,
++                        ScriptInjectionTracker::ScriptType script_type,
++                        const ExtensionId& extension_id) {
++    std::erase_if(pending_scripts_, [](const auto& entry) {
++      return !content::RenderFrameHost::FromID(entry.first.frame_id);
++    });
++    pending_scripts_[{frame_id, injection_type, extension_id}].insert(
++        script_type);
++  }
++
++  std::set<ScriptInjectionTracker::ScriptType> TakePendingScripts(
++      content::GlobalRenderFrameHostId frame_id,
++      mojom::InjectionType injection_type,
++      const ExtensionId& extension_id) {
++    auto it = pending_scripts_.find({frame_id, injection_type, extension_id});
++    if (it == pending_scripts_.end()) {
++      return {};
++    }
++    std::set<ScriptInjectionTracker::ScriptType> scripts =
++        std::move(it->second);
++    pending_scripts_.erase(it);
++    return scripts;
++  }
++
++  bool HasPendingScripts(content::GlobalRenderFrameHostId frame_id,
++                         const ExtensionId& extension_id) const {
++    return !pending_scripts_.empty() &&
++           pending_scripts_.contains({frame_id,
++                                      mojom::InjectionType::kProgrammaticScript,
++                                      extension_id});
++  }
++
+   const ExtensionIdSet& content_scripts() const { return content_scripts_; }
+   const ExtensionIdSet& user_scripts() const { return user_scripts_; }
+ 
+  private:
++  struct PendingScriptKey {
++    content::GlobalRenderFrameHostId frame_id;
++    mojom::InjectionType injection_type;
++    ExtensionId extension_id;
++
++    friend auto operator<=>(const PendingScriptKey&,
++                            const PendingScriptKey&) = default;
++  };
++
+   explicit RenderProcessHostUserData(content::RenderProcessHost& process)
+       : process_(process) {
+     TRACE_EVENT_BEGIN("extensions",
+@@ -148,6 +199,14 @@ class RenderProcessHostUserData : public base::SupportsUserData::Data {
+   ExtensionIdSet content_scripts_;
+   ExtensionIdSet user_scripts_;
+ 
++  // Browser-dispatched programmatic script injections whose execution in a
++  // frame was deferred because host permissions were withheld. Stored here
++  // (keyed by GlobalRenderFrameHostId, with destroyed frames pruned on
++  // insertion) rather than in DocumentUserData to avoid ReadyToCommit /
++  // DidCommit races and preserve injections queued on initial empty documents.
++  std::map<PendingScriptKey, std::set<ScriptInjectionTracker::ScriptType>>
++      pending_scripts_;
++
+   // Only used for tracing.
+   const raw_ref<content::RenderProcessHost> process_;
+ };
+@@ -452,13 +511,16 @@ std::vector<const Extension*> GetExtensionsInjectingContentScripts(
+ 
+ // Adds all scripts from `extension` that matches the `process` renderers to the
+ // process data.
+-void AddMatchingScriptsToProcess(const Extension& extension,
++void AddMatchingScriptsToProcess(base::PassKey<ScriptInjectionTracker> pass_key,
++                                 const Extension& extension,
+                                  content::RenderProcessHost& process) {
+   bool any_frame_matches_content_scripts = false;
+   bool any_frame_matches_user_scripts = false;
++  auto* existing_process_data = RenderProcessHostUserData::Get(process);
+   process.ForEachRenderFrameHost([&any_frame_matches_content_scripts,
+                                   &any_frame_matches_user_scripts,
+-                                  &extension](content::RenderFrameHost* frame) {
++                                  existing_process_data, &extension,
++                                  pass_key](content::RenderFrameHost* frame) {
+     const GURL& url = frame->GetLastCommittedURL();
+     // Ignore error documents, which don't allow scripts to inject.
+     // We need to check whether the committed URL is empty first to avoid a
+@@ -477,6 +539,28 @@ void AddMatchingScriptsToProcess(const Extension& extension,
+       any_frame_matches_user_scripts =
+           DoUserScriptsMatch(extension, *frame, url);
+     }
++    if (!existing_process_data || !existing_process_data->HasPendingScripts(
++                                      frame->GetGlobalId(), extension.id())) {
++      return;
++    }
++
++    auto* web_contents = content::WebContents::FromRenderFrameHost(frame);
++    int tab_id = sessions::SessionTabHelper::IdForTab(web_contents).id();
++    GURL effective_url = GetEffectiveDocumentURL(
++        frame, url, mojom::MatchOriginAsFallbackBehavior::kAlways);
++    if (!extension.permissions_data()->HasTabPermissionsForSecurityOrigin(
++            tab_id, effective_url) &&
++        !extension.permissions_data()->HasHostPermission(effective_url)) {
++      return;
++    }
++
++    for (ScriptInjectionTracker::ScriptType pending_script_type :
++         existing_process_data->TakePendingScripts(
++             frame->GetGlobalId(), mojom::InjectionType::kProgrammaticScript,
++             extension.id())) {
++      HandleProgrammaticScriptInjection(pass_key, pending_script_type, frame,
++                                        extension);
++    }
+   });
+ 
+   if (any_frame_matches_content_scripts || any_frame_matches_user_scripts) {
+@@ -817,7 +901,8 @@ void ScriptInjectionTracker::WillExecuteCode(
+     base::PassKey<ScriptExecutor> pass_key,
+     ScriptType script_type,
+     content::RenderFrameHost* frame,
+-    const mojom::HostID& host_id) {
++    const mojom::HostID& host_id,
++    bool is_withheld) {
+   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+ 
+   content::RenderProcessHost& process = *frame->GetProcess();
+@@ -832,6 +917,13 @@ void ScriptInjectionTracker::WillExecuteCode(
+     return;
+   }
+ 
++  if (is_withheld) {
++    RenderProcessHostUserData::GetOrCreate(process).AddPendingScript(
++        frame->GetGlobalId(), mojom::InjectionType::kProgrammaticScript,
++        script_type, extension->id());
++    return;
++  }
++
+   HandleProgrammaticScriptInjection(PassKey(), script_type, frame, *extension);
+ }
+ 
+@@ -841,8 +933,9 @@ void ScriptInjectionTracker::WillExecuteCode(
+     content::RenderFrameHost* frame,
+     const Extension& extension) {
+   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
++  content::RenderProcessHost& process = *frame->GetProcess();
+   TRACE_EVENT("extensions", "ScriptInjectionTracker::WillExecuteCode/2",
+-              ChromeTrackEvent::kRenderProcessHost, *frame->GetProcess(),
++              ChromeTrackEvent::kRenderProcessHost, process,
+               ChromeTrackEvent::kChromeExtensionId,
+               ExtensionIdForTracing(extension.id()));
+ 
+@@ -859,16 +952,30 @@ void ScriptInjectionTracker::WillExecuteCode(
+     content::RenderFrameHost* frame,
+     const Extension& extension) {
+   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
++  content::RenderProcessHost& process = *frame->GetProcess();
+   TRACE_EVENT("extensions", "ScriptInjectionTracker::WillExecuteCode/3",
+-              ChromeTrackEvent::kRenderProcessHost, *frame->GetProcess(),
++              ChromeTrackEvent::kRenderProcessHost, process,
+               ChromeTrackEvent::kChromeExtensionId,
+               ExtensionIdForTracing(extension.id()));
+ 
+-  // A programmatic injection that was deferred while host access was withheld
+-  // is being permitted to run; this is treated like any other programmatic
+-  // content script injection.
+-  HandleProgrammaticScriptInjection(PassKey(), ScriptType::kContentScript,
+-                                    frame, extension);
++  switch (script_type) {
++    case mojom::InjectionType::kContentScript:
++      AddMatchingScriptsToProcess(PassKey(), extension, process);
++      break;
++    case mojom::InjectionType::kProgrammaticScript: {
++      auto* process_data = RenderProcessHostUserData::Get(process);
++      if (!process_data) {
++        return;
++      }
++      std::set<ScriptType> pending_scripts = process_data->TakePendingScripts(
++          frame->GetGlobalId(), script_type, extension.id());
++      for (ScriptType pending_script_type : pending_scripts) {
++        HandleProgrammaticScriptInjection(PassKey(), pending_script_type, frame,
++                                          extension);
++      }
++      break;
++    }
++  }
+ }
+ 
+ // static
+@@ -878,7 +985,7 @@ void ScriptInjectionTracker::WillGrantActiveTab(
+     content::RenderProcessHost& process) {
+   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+ 
+-  AddMatchingScriptsToProcess(extension, process);
++  AddMatchingScriptsToProcess(PassKey(), extension, process);
+ }
+ 
+ // static
+@@ -898,7 +1005,7 @@ void ScriptInjectionTracker::DidUpdateScriptsInRenderer(
+     return;
+   }
+ 
+-  AddMatchingScriptsToProcess(*extension, process);
++  AddMatchingScriptsToProcess(PassKey(), *extension, process);
+ }
+ 
+ // static
+@@ -908,7 +1015,7 @@ void ScriptInjectionTracker::DidUpdatePermissionsInRenderer(
+     content::RenderProcessHost& process) {
+   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+ 
+-  AddMatchingScriptsToProcess(extension, process);
++  AddMatchingScriptsToProcess(PassKey(), extension, process);
+ }
+ 
+ // static
+diff --git a/extensions/browser/script_injection_tracker.h b/extensions/browser/script_injection_tracker.h
+index ae3bfcd367..e175ef05aa 100644
+--- a/extensions/browser/script_injection_tracker.h
++++ b/extensions/browser/script_injection_tracker.h
+@@ -121,13 +121,17 @@ class ScriptInjectionTracker {
+ 
+   // Called before ExtensionMsg_ExecuteCode is sent to a renderer process
+   // (typically when handling chrome.tabs.executeScript or a similar API call).
++  // If `is_withheld` is true (because host access is currently withheld), the
++  // injection is recorded as pending on `frame` and will only be finalized if
++  // `ExtensionActionRunner` later permits it to run.
+   //
+   // The caller needs to ensure that if `host_id.type() == HostID::EXTENSIONS`,
+   // then the extension with the given `host_id` exists and is enabled.
+   static void WillExecuteCode(base::PassKey<ScriptExecutor> pass_key,
+                               ScriptType script_type,
+                               content::RenderFrameHost* frame,
+-                              const mojom::HostID& host_id);
++                              const mojom::HostID& host_id,
++                              bool is_withheld);
+ 
+   // Called before `extensions::mojom::LocalFrame::ExecuteDeclarativeScript` is
+   // invoked in a renderer process (e.g. when handling RequestContentScript
+@@ -136,9 +140,11 @@ class ScriptInjectionTracker {
+                               content::RenderFrameHost* frame,
+                               const Extension& extension);
+ 
+-  // Called before a programmatic injection that was previously deferred
+-  // (because host access was withheld) is permitted to run as a result of the
+-  // user granting the extension access to the page.
++  // Called when `ExtensionActionRunner` permits a script injection to run in
++  // `frame`. For `kProgrammaticScript`, this finalizes a pending injection that
++  // was previously recorded while host access was withheld. For
++  // `kContentScript`, this records any matching scripts for the extension in
++  // `frame`'s process.
+   static void WillExecuteCode(base::PassKey<ExtensionActionRunner> pass_key,
+                               mojom::InjectionType script_type,
+                               content::RenderFrameHost* frame,
+-- 
+2.43.0
+

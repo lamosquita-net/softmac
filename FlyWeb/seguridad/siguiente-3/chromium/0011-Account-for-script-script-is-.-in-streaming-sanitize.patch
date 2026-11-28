@@ -1,0 +1,172 @@
+From 0ab73cca6478cc70a51812daf7c3873773e8cb62 Mon Sep 17 00:00:00 2001
+From: Noam Rosenthal <nrosenthal@chromium.org>
+Date: Wed, 30 Sep 2026 06:39:10 -0700
+Subject: [PATCH] Account for script <script is="..."> in streaming sanitizer
+
+This prevents a situation where <script is="custom-el"> would invoke custom-el's constructor despite scripts being forbidden by sanitizer.
+
+Bug: 562404384
+Change-Id: I5fc3dc36371ce470a77d32f7ddeb10b6b48b5e29
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8486086
+Reviewed-by: Daniel Vogelheim <vogelheim@chromium.org>
+Commit-Queue: Noam Rosenthal <nrosenthal@google.com>
+Cr-Commit-Position: refs/heads/main@{#1708032}
+---
+ .../html/parser/html_construction_site.cc     |  2 +-
+ .../renderer/core/sanitizer/sanitizer.cc      |  3 +
+ .../stream-html-custom-element-sanitizer.html | 98 +++++++++++++++++++
+ 3 files changed, 102 insertions(+), 1 deletion(-)
+
+diff --git a/third_party/blink/renderer/core/html/parser/html_construction_site.cc b/third_party/blink/renderer/core/html/parser/html_construction_site.cc
+index ced27a633d..1f0a30bf28 100644
+--- a/third_party/blink/renderer/core/html/parser/html_construction_site.cc
++++ b/third_party/blink/renderer/core/html/parser/html_construction_site.cc
+@@ -304,7 +304,7 @@ StreamingSanitizer* HTMLConstructionSite::ActiveSanitizer(
+ 
+   auto* default_sanitizer = sanitizer_.Get();
+ 
+-  if (!RuntimeEnabledFeatures::DeclarativeFragmentEnabled()) {
++  if (!RuntimeEnabledFeatures::DeclarativeFragmentEnabled() || IsEmpty()) {
+     return default_sanitizer;
+   }
+ 
+diff --git a/third_party/blink/renderer/core/sanitizer/sanitizer.cc b/third_party/blink/renderer/core/sanitizer/sanitizer.cc
+index f9cfd60880..9c4faa91a2 100644
+--- a/third_party/blink/renderer/core/sanitizer/sanitizer.cc
++++ b/third_party/blink/renderer/core/sanitizer/sanitizer.cc
+@@ -1486,6 +1486,9 @@ bool Sanitizer::isValid() const {
+ }
+ 
+ bool Sanitizer::AllowIsAttribute(const QualifiedName& element_name) const {
++  if (!IsElementAllowed(element_name)) {
++    return false;
++  }
+   const auto allow_per_element_iter =
+       allow_attrs_per_element_.find(element_name);
+   const SanitizerNameSet* allow_per_element =
+diff --git a/third_party/blink/web_tests/external/wpt/domparsing/tentative/stream-html-custom-element-sanitizer.html b/third_party/blink/web_tests/external/wpt/domparsing/tentative/stream-html-custom-element-sanitizer.html
+index 5bec06b30b..b70300614c 100644
+--- a/third_party/blink/web_tests/external/wpt/domparsing/tentative/stream-html-custom-element-sanitizer.html
++++ b/third_party/blink/web_tests/external/wpt/domparsing/tentative/stream-html-custom-element-sanitizer.html
+@@ -32,6 +32,28 @@ registry.define("disallowed-element-scoped", class extends HTMLElement {
+   }
+ });
+ 
++class DisallowedScriptElement extends HTMLScriptElement {
++  constructor() {
++    super();
++    constructor_called = true;
++  }
++  connectedCallback() {
++    connected_called = true;
++  }
++}
++customElements.define("disallowed-script", DisallowedScriptElement, { extends: "script" });
++
++class DisallowedDivElement extends HTMLDivElement {
++  constructor() {
++    super();
++    constructor_called = true;
++  }
++  connectedCallback() {
++    connected_called = true;
++  }
++}
++customElements.define("disallowed-div", DisallowedDivElement, { extends: "div" });
++
+ const asyncMethods = [
+   "streamHTML", "streamAppendHTML", "streamPrependHTML",
+   "streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"
+@@ -89,6 +111,46 @@ for (const method of asyncMethods) {
+       assert_false(connected_called, "ConnectedCallback should not be called for stripped scoped elements");
+     }, `${method} blocks CE constructor in scoped registry when element is dropped by sanitizer (${config.name})`);
+   }
++
++  for (const config of [
++    { name: "removeElements", options: { sanitizer: { removeElements: ["script"] } } },
++    { name: "allowElements", options: { sanitizer: { elements: ["div"] } } }
++  ]) {
++    promise_test(async (t) => {
++      constructor_called = false;
++      connected_called = false;
++      const container = document.getElementById("container");
++      t.add_cleanup(() => container.replaceChildren());
++
++      const writer = container[method](config.options).getWriter();
++      await writer.write('<script is="disallowed-script"><\/script>');
++      await writer.close();
++
++      assert_equals(container.innerHTML, "");
++      assert_false(constructor_called, "Constructor should not be called for stripped script element");
++      assert_false(connected_called, "ConnectedCallback should not be called for stripped script element");
++    }, `${method} blocks CE constructor when <script is=...> is dropped by sanitizer (${config.name})`);
++  }
++
++  for (const config of [
++    { name: "removeElements", options: { sanitizer: { removeElements: ["div"] } } },
++    { name: "allowElements", options: { sanitizer: { elements: ["span"] } } }
++  ]) {
++    promise_test(async (t) => {
++      constructor_called = false;
++      connected_called = false;
++      const container = document.getElementById("container");
++      t.add_cleanup(() => container.replaceChildren());
++
++      const writer = container[method](config.options).getWriter();
++      await writer.write('<div is="disallowed-div"></div>');
++      await writer.close();
++
++      assert_equals(container.innerHTML, "");
++      assert_false(constructor_called, "Constructor should not be called for stripped div element");
++      assert_false(connected_called, "ConnectedCallback should not be called for stripped div element");
++    }, `${method} blocks CE constructor when <div is=...> is dropped by sanitizer (${config.name})`);
++  }
+ }
+ 
+ for (const method of syncMethods) {
+@@ -133,6 +195,42 @@ for (const method of syncMethods) {
+       assert_false(connected_called, "ConnectedCallback should not be called for stripped scoped elements");
+     }, `${method} blocks CE constructor in scoped registry when element is dropped by sanitizer (${config.name})`);
+   }
++
++  for (const config of [
++    { name: "removeElements", options: { sanitizer: { removeElements: ["script"] } } },
++    { name: "allowElements", options: { sanitizer: { elements: ["div"] } } }
++  ]) {
++    test((t) => {
++      constructor_called = false;
++      connected_called = false;
++      const container = document.getElementById("container");
++      t.add_cleanup(() => container.replaceChildren());
++
++      container[method]('<script is="disallowed-script"><\/script>', config.options);
++
++      assert_equals(container.innerHTML, "");
++      assert_false(constructor_called, "Constructor should not be called for stripped script element");
++      assert_false(connected_called, "ConnectedCallback should not be called for stripped script element");
++    }, `${method} blocks CE constructor when <script is=...> is dropped by sanitizer (${config.name})`);
++  }
++
++  for (const config of [
++    { name: "removeElements", options: { sanitizer: { removeElements: ["div"] } } },
++    { name: "allowElements", options: { sanitizer: { elements: ["span"] } } }
++  ]) {
++    test((t) => {
++      constructor_called = false;
++      connected_called = false;
++      const container = document.getElementById("container");
++      t.add_cleanup(() => container.replaceChildren());
++
++      container[method]('<div is="disallowed-div"></div>', config.options);
++
++      assert_equals(container.innerHTML, "");
++      assert_false(constructor_called, "Constructor should not be called for stripped div element");
++      assert_false(connected_called, "ConnectedCallback should not be called for stripped div element");
++    }, `${method} blocks CE constructor when <div is=...> is dropped by sanitizer (${config.name})`);
++  }
+ }
+ </script>
+ </body>
+-- 
+2.43.0
+

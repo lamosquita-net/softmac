@@ -1,0 +1,128 @@
+From 9bf0b7f99a9fa2c6ff72479220047e768f579ccd Mon Sep 17 00:00:00 2001
+From: Evan Stade <evanstade@microsoft.com>
+Date: Thu, 26 Nov 2026 10:27:55 -0800
+Subject: [PATCH] [M156] IndexedDB: fix within-transaction Blob key comparison
+
+Original change's description:
+> IndexedDB: fix within-transaction Blob key comparison
+>
+> The LevelDB store keeps blob handles in memory during a single r/w
+> transaction, or indefinitely in the case of incognito. These in-memory
+> blobs are keyed on serialized strings, but did a byte-wise comparison
+> instead of the special comparator that the database uses.
+>
+> Fixed: 589433703
+> Change-Id: Ib75e4fc8de2a6c4fc04330e0c9516eaa9b64d9f7
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8856714
+> Commit-Queue: Evan Stade <evanstade@microsoft.com>
+> Auto-Submit: Evan Stade <evanstade@microsoft.com>
+> Reviewed-by: Steve Becker <stevebe@microsoft.com>
+> Cr-Commit-Position: refs/heads/main@{#1752574}
+
+(cherry picked from commit 541a1a626e90ef6000dcdc23a2c5795d21a1a9b7)
+
+Bug: 590348260,589433703
+Change-Id: Ib75e4fc8de2a6c4fc04330e0c9516eaa9b64d9f7
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8868710
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8078@{#2444}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../instance/leveldb/backing_store.h          | 22 +++++++++----
+ .../leveldb/leveldb_backing_store_unittest.cc | 31 +++++++++++++++++++
+ 2 files changed, 47 insertions(+), 6 deletions(-)
+
+diff --git a/content/browser/indexed_db/instance/leveldb/backing_store.h b/content/browser/indexed_db/instance/leveldb/backing_store.h
+index 10e14fed2e..39a3e5353f 100644
+--- a/content/browser/indexed_db/instance/leveldb/backing_store.h
++++ b/content/browser/indexed_db/instance/leveldb/backing_store.h
+@@ -235,6 +235,19 @@ class CONTENT_EXPORT BackingStore : public indexed_db::BackingStore {
+     blink::mojom::IDBTransactionMode mode() const { return mode_; }
+ 
+    private:
++    friend class BackingStore;
++
++    struct EncodedKeyComparator {
++      bool operator()(const std::string& a, const std::string& b) const {
++        return CompareKeys(a, b) < 0;
++      }
++    };
++
++    using ExternalObjectChangeMap =
++        std::map<std::string,
++                 std::unique_ptr<IndexedDBExternalObjectChangeRecord>,
++                 EncodedKeyComparator>;
++
+     int64_t database_id() const { return *database_->metadata().id; }
+ 
+     Status FindKeyInIndex(int64_t object_store_id,
+@@ -277,10 +290,8 @@ class CONTENT_EXPORT BackingStore : public indexed_db::BackingStore {
+ 
+     std::unique_ptr<TransactionalLevelDBTransaction> transaction_;
+ 
+-    std::map<std::string, std::unique_ptr<IndexedDBExternalObjectChangeRecord>>
+-        external_object_change_map_;
+-    std::map<std::string, std::unique_ptr<IndexedDBExternalObjectChangeRecord>>
+-        in_memory_external_object_map_;
++    ExternalObjectChangeMap external_object_change_map_;
++    ExternalObjectChangeMap in_memory_external_object_map_;
+ 
+     // List of blob files being newly written as part of this transaction.
+     // These will be added to the recovery blob journal prior to commit, then
+@@ -638,8 +649,7 @@ class CONTENT_EXPORT BackingStore : public indexed_db::BackingStore {
+   // backing store this is redundant but necessary for backwards compatibility.
+   const std::string origin_identifier_;
+ 
+-  std::map<std::string, std::unique_ptr<IndexedDBExternalObjectChangeRecord>>
+-      in_memory_external_object_map_;
++  Transaction::ExternalObjectChangeMap in_memory_external_object_map_;
+ 
+   bool execute_journal_cleaning_on_no_txns_ = false;
+   int num_aggregated_journal_cleaning_requests_ = 0;
+diff --git a/content/browser/indexed_db/instance/leveldb/leveldb_backing_store_unittest.cc b/content/browser/indexed_db/instance/leveldb/leveldb_backing_store_unittest.cc
+index c52871fee3..5c378bcf27 100644
+--- a/content/browser/indexed_db/instance/leveldb/leveldb_backing_store_unittest.cc
++++ b/content/browser/indexed_db/instance/leveldb/leveldb_backing_store_unittest.cc
+@@ -273,6 +273,37 @@ class LevelDbBackingStoreTestWithBlobs
+   bool IncludesFileSystemAccessHandles() override { return false; }
+ };
+ 
++// Verifies the key comparator used in the external object change maps.
++// Regression test for crbug.com/589433703
++TEST_F(LevelDbBackingStoreTestWithBlobs, ExternalObjectsWithEquivalentKeys) {
++  // Two keys that should be treated as equivalent, even though they don't have
++  // the same byte-wise serialized representation.
++  const std::array<IndexedDBKey, 2> keys = {
++      IndexedDBKey(0.0, blink::mojom::IDBKeyType::Number),
++      IndexedDBKey(-0.0, blink::mojom::IDBKeyType::Number)};
++  const IndexedDBValue first("first", {CreateBlobInfo(u"first", "first")});
++  const IndexedDBValue second("second", {CreateBlobInfo(u"second", "second")});
++
++  BackingStore::Database db(*backing_store(),
++                            BackingStore::DatabaseMetadata{u"name"});
++  db.metadata().id = 1;
++  std::unique_ptr<indexed_db::BackingStore::Transaction> transaction =
++      CreateAndBeginTransaction(db,
++                                blink::mojom::IDBTransactionMode::ReadWrite);
++  ASSERT_TRUE(transaction->PutRecord(1, keys[0], first.Clone()).has_value());
++  ASSERT_TRUE(transaction->PutRecord(1, keys[1], second.Clone()).has_value());
++
++  for (const IndexedDBKey& key : keys) {
++    StatusOr<IndexedDBValue> result = transaction->GetRecord(1, key);
++    ASSERT_TRUE(result.has_value());
++    EXPECT_EQ(base::span(result->bits), base::span(second.bits));
++    ASSERT_EQ(result->external_objects.size(), 1u);
++    EXPECT_EQ(result->external_objects[0].type(),
++              second.external_objects[0].type());
++  }
++  transaction->Rollback();
++}
++
+ // http://crbug.com/1131151
+ // Validate that recovery journal cleanup during a transaction does
+ // not delete blobs that were just written.
+-- 
+2.43.0
+

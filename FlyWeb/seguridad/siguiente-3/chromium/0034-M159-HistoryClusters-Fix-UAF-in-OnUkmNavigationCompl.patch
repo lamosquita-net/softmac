@@ -1,0 +1,169 @@
+From edb6ca5ae716b7eb678cf76a47b8f93c6c789c63 Mon Sep 17 00:00:00 2001
+From: Sophie Chang <sophiechang@chromium.org>
+Date: Fri, 27 Nov 2026 10:24:54 -0800
+Subject: [PATCH] [M159] [HistoryClusters] Fix UAF in OnUkmNavigationComplete
+
+Original change's description:
+> [HistoryClusters] Fix UAF in OnUkmNavigationComplete
+>
+> Return early from HistoryClustersTabHelper::OnUkmNavigationComplete()
+> when the navigation has no incomplete visit context annotations.
+> Otherwise, set expect_ukm_page_end_signals = true and scope the
+> reference before calling RecordPageEndMetricsIfNeeded(), then re-check
+> HasIncompleteVisitContextAnnotations() before copying annotations and
+> completing the visit.
+>
+> Previously, if expect_ukm_page_end_signals was false and history_rows
+> was true, RecordPageEndMetricsIfNeeded() would complete and erase the
+> IncompleteVisitContextAnnotations entry, leaving the local reference in
+> OnUkmNavigationComplete() dangling and causing a use-after-free.
+>
+> Ai-Assisted: true
+> Fixed: 589865719
+> Change-Id: I51a4980dc62427b9e394246ba081c454a5194911
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8857941
+> Reviewed-by: manuk hovanesian <manukh@chromium.org>
+> Commit-Queue: Sophie Chang <sophiechang@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1755043}
+
+(cherry picked from commit 88e8a9c42e33b14f62b5d87805c6104fd96af7d2)
+
+Bug: 590700588,589865719
+Change-Id: I51a4980dc62427b9e394246ba081c454a5194911
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8869441
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#2021}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ .../history_clusters_tab_helper.cc            | 39 ++++++++++----
+ .../history_clusters_tab_helper_unittest.cc   | 52 +++++++++++++++++++
+ 2 files changed, 80 insertions(+), 11 deletions(-)
+
+diff --git a/chrome/browser/history_clusters/history_clusters_tab_helper.cc b/chrome/browser/history_clusters/history_clusters_tab_helper.cc
+index 8f32b65072..35dfb13693 100644
+--- a/chrome/browser/history_clusters/history_clusters_tab_helper.cc
++++ b/chrome/browser/history_clusters/history_clusters_tab_helper.cc
+@@ -238,29 +238,46 @@ HistoryClustersTabHelper::OnUkmNavigationComplete(
+     base::TimeDelta total_foreground_duration,
+     const page_load_metrics::PageEndReason page_end_reason) {
+   auto* history_clusters_service = GetHistoryClustersService();
+-  if (!history_clusters_service)
++  if (!history_clusters_service ||
++      !history_clusters_service->HasIncompleteVisitContextAnnotations(
++          navigation_id)) {
+     return history::VisitContextAnnotations();
++  }
++
++  {
++    auto& incomplete_visit_context_annotations =
++        history_clusters_service->GetIncompleteVisitContextAnnotations(
++            navigation_id);
++    incomplete_visit_context_annotations.context_annotations.page_end_reason =
++        page_end_reason;
++    incomplete_visit_context_annotations.context_annotations
++        .total_foreground_duration = total_foreground_duration;
++    // Ensure `RecordPageEndMetricsIfNeeded()` does not complete and erase the
++    // entry early if `TagNavigationAsExpectingUkmNavigationComplete()` was not
++    // called when the navigation started.
++    incomplete_visit_context_annotations.status.expect_ukm_page_end_signals =
++        true;
++  }
+ 
+-  auto& incomplete_visit_context_annotations =
+-      history_clusters_service->GetIncompleteVisitContextAnnotations(
+-          navigation_id);
+-  incomplete_visit_context_annotations.context_annotations.page_end_reason =
+-      page_end_reason;
+-  incomplete_visit_context_annotations.context_annotations
+-      .total_foreground_duration = total_foreground_duration;
+   // `RecordPageEndMetricsIfNeeded()` will fail to complete the
+   // `IncompleteVisitContextAnnotations` as `ukm_page_end_signals` hasn't been
+   // set yet, but it will record metrics if needed (i.e. not already recorded)
+   // and possible (i.e. the history request has resolved and `history_rows` have
+   // been recorded).
+   RecordPageEndMetricsIfNeeded(navigation_id);
++  if (!history_clusters_service->HasIncompleteVisitContextAnnotations(
++          navigation_id)) {
++    return history::VisitContextAnnotations();
++  }
++
+   // Make a copy of the context annotations as the referenced
+-  // incomplete_visit_context_annotations may be destroyed in
++  // `incomplete_visit_context_annotations` may be destroyed in
+   // `CompleteVisitContextAnnotationsIfReady()`.
++  auto& incomplete_visit_context_annotations =
++      history_clusters_service->GetIncompleteVisitContextAnnotations(
++          navigation_id);
+   auto context_annotations_copy =
+       incomplete_visit_context_annotations.context_annotations;
+-  DCHECK(
+-      incomplete_visit_context_annotations.status.expect_ukm_page_end_signals);
+   incomplete_visit_context_annotations.status.ukm_page_end_signals = true;
+   history_clusters_service->CompleteVisitContextAnnotationsIfReady(
+       navigation_id);
+diff --git a/chrome/browser/history_clusters/history_clusters_tab_helper_unittest.cc b/chrome/browser/history_clusters/history_clusters_tab_helper_unittest.cc
+index 06904ac089..5171e18fda 100644
+--- a/chrome/browser/history_clusters/history_clusters_tab_helper_unittest.cc
++++ b/chrome/browser/history_clusters/history_clusters_tab_helper_unittest.cc
+@@ -743,4 +743,56 @@ TEST_F(HistoryClustersTabHelperTest, TwoNavigations2ndUkmBefore2ndNavigation) {
+             base::Seconds(20));
+ }
+ 
++// Regression test for crbug.com/589865719: Calling `OnUkmNavigationComplete()`
++// without `TagNavigationAsExpectingUkmNavigationComplete()` should not cause a
++// use-after-free and should still record and return UKM context annotations.
++TEST_F(HistoryClustersTabHelperTest,
++       UkmNavigationCompleteWithoutExpectingUkm) {
++  AddToHistory(GURL{"https://github.com"}, MakeTime(1));
++  UpdateHistoryForNavigation(0, MakeTime(1), GURL{"https://github.com"});
++  history::BlockUntilHistoryProcessesPendingRequests(history_service_);
++
++  const auto annotations = helper_->OnUkmNavigationComplete(
++      0, /*total_foreground_duration=*/base::Seconds(20),
++      page_load_metrics::PageEndReason::END_OTHER);
++  EXPECT_EQ(annotations.page_end_reason,
++            page_load_metrics::PageEndReason::END_OTHER);
++  EXPECT_EQ(annotations.total_foreground_duration, base::Seconds(20));
++
++  DeleteContents();
++  auto visits = GetVisits();
++  ASSERT_EQ(visits.size(), 1u);
++  EXPECT_EQ(visits[0].context_annotations.page_end_reason,
++            page_load_metrics::PageEndReason::END_OTHER);
++  EXPECT_EQ(visits[0].context_annotations.total_foreground_duration,
++            base::Seconds(20));
++}
++
++// Calling `OnUkmNavigationComplete()` for an untracked navigation or after the
++// visit has already been completed should safely return default annotations.
++TEST_F(HistoryClustersTabHelperTest,
++       UkmNavigationCompleteWithoutIncompleteVisit) {
++  const auto untracked_annotations = helper_->OnUkmNavigationComplete(
++      0, /*total_foreground_duration=*/base::Seconds(20),
++      page_load_metrics::PageEndReason::END_OTHER);
++  EXPECT_EQ(untracked_annotations.page_end_reason, 0);
++
++  AddToHistory(GURL{"https://github.com"}, MakeTime(1));
++  UpdateHistoryForNavigation(1, MakeTime(1), GURL{"https://github.com"});
++  history::BlockUntilHistoryProcessesPendingRequests(history_service_);
++  helper_->TagNavigationAsExpectingUkmNavigationComplete(1);
++
++  const auto first_annotations = helper_->OnUkmNavigationComplete(
++      1, /*total_foreground_duration=*/base::Seconds(20),
++      page_load_metrics::PageEndReason::END_OTHER);
++  EXPECT_EQ(first_annotations.page_end_reason,
++            page_load_metrics::PageEndReason::END_OTHER);
++
++  const auto duplicate_annotations = helper_->OnUkmNavigationComplete(
++      1, /*total_foreground_duration=*/base::Seconds(30),
++      page_load_metrics::PageEndReason::END_CLOSE);
++  EXPECT_EQ(duplicate_annotations.page_end_reason, 0);
++  EXPECT_EQ(duplicate_annotations.total_foreground_duration, base::Seconds(-1));
++}
++
+ }  // namespace
+-- 
+2.43.0
+

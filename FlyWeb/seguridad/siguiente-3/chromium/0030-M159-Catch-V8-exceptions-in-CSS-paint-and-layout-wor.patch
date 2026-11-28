@@ -1,0 +1,527 @@
+From 0cd433063a8247de4d764d21934b895bd6d31224 Mon Sep 17 00:00:00 2001
+From: Robert Flack <flackr@chromium.org>
+Date: Thu, 26 Nov 2026 14:44:40 -0800
+Subject: [PATCH] [M159] Catch V8 exceptions in CSS paint and layout worklets
+
+Original change's description:
+> Catch V8 exceptions in CSS paint and layout worklets
+>
+> CSSPaintDefinition::Paint calls MaybeCreatePaintInstance before it
+> starts a v8::TryCatch scope. If the constructor of a paint class
+> throws an exception during synchronous paint, the exception stays on
+> the V8 isolate. When the worklet scope ends, the exception goes to page
+> script and can cause a crash.
+>
+> CSSLayoutDefinition has the same problem. CreateInstance,
+> Instance::Layout, and Instance::IntrinsicSizes call worklet
+> constructors and callbacks without a v8::TryCatch scope. If one of
+> these calls throws an exception during synchronous layout, the
+> exception stays on the V8 isolate and can cause a crash.
+>
+> This change prevents the crash:
+>
+> - In CSSPaintDefinition::Paint, check script_state_->ContextIsValid()
+>   before ScriptState::Scope. Move v8::TryCatch before
+>   MaybeCreatePaintInstance so that it catches exceptions from both the
+>   constructor and paint().
+> - In CSSLayoutDefinition, add v8::TryCatch with SetVerbose(true) to
+>   CreateInstance, Instance::Layout, and Instance::IntrinsicSizes. Put
+>   v8::TryCatch outside V8RunMicrotasksScope so that microtasks do not
+>   run when a callback throws an exception.
+> - Add web platform tests and a PaintWorkletTest unit test to check that
+>   these exceptions do not go to page script.
+>
+> Bug: 589449226
+> Change-Id: I6fdd8912277a3ad415f8cbc9f434cd276b4bd27e
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8858448
+> Commit-Queue: Robert Flack <flackr@chromium.org>
+> Reviewed-by: Ian Kilpatrick <ikilpatrick@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1754193}
+
+(cherry picked from commit b9d8b3b890ed9e543ba5363e4f35f536d39fc6b1)
+
+Bug: 590700217,589449226
+Change-Id: I6fdd8912277a3ad415f8cbc9f434cd276b4bd27e
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8868906
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1940}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ .../layout/custom/css_layout_definition.cc    |  12 +-
+ .../modules/csspaint/css_paint_definition.cc  |  15 ++-
+ .../modules/csspaint/paint_worklet_test.cc    | 123 +++++++++++++++++-
+ .../fallback-synchronous-errors.https.html    | 111 ++++++++++++++++
+ .../constructor-error-synchronous.https.html  | 104 +++++++++++++++
+ 5 files changed, 356 insertions(+), 9 deletions(-)
+ create mode 100644 third_party/blink/web_tests/external/wpt/css/css-layout-api/fallback-synchronous-errors.https.html
+ create mode 100644 third_party/blink/web_tests/external/wpt/css/css-paint-api/constructor-error-synchronous.https.html
+
+diff --git a/third_party/blink/renderer/core/layout/custom/css_layout_definition.cc b/third_party/blink/renderer/core/layout/custom/css_layout_definition.cc
+index 042ceb9f10..00d1c01c63 100644
+--- a/third_party/blink/renderer/core/layout/custom/css_layout_definition.cc
++++ b/third_party/blink/renderer/core/layout/custom/css_layout_definition.cc
+@@ -120,6 +120,8 @@ bool CSSLayoutDefinition::Instance::Layout(
+   ExecutionContext* execution_context = ExecutionContext::From(script_state);
+   ScriptValue return_value;
+   {
++    v8::TryCatch try_catch(isolate);
++    try_catch.SetVerbose(true);
+     V8RunMicrotasksScope microtasks_scope(script_state);
+     if (!definition_->layout_
+              ->Invoke(instance_.Get(isolate), children, edges, constraints,
+@@ -247,6 +249,8 @@ bool CSSLayoutDefinition::Instance::IntrinsicSizes(
+ 
+   ScriptValue return_value;
+   {
++    v8::TryCatch try_catch(isolate);
++    try_catch.SetVerbose(true);
+     V8RunMicrotasksScope microtasks_scope(script_state);
+     if (!definition_->intrinsic_sizes_
+              ->Invoke(instance_.Get(isolate), children, edges, style_map)
+@@ -318,10 +322,14 @@ CSSLayoutDefinition::Instance* CSSLayoutDefinition::CreateInstance() {
+     return nullptr;
+ 
+   // Ensure that we don't create an instance on a detached context.
+-  if (!GetScriptState()->ContextIsValid())
++  ScriptState* script_state = GetScriptState();
++  if (!script_state->ContextIsValid()) {
+     return nullptr;
++  }
+ 
+-  ScriptState::Scope scope(GetScriptState());
++  ScriptState::Scope scope(script_state);
++  v8::TryCatch try_catch(script_state->GetIsolate());
++  try_catch.SetVerbose(true);
+ 
+   ScriptValue instance;
+   if (!constructor_->Construct().To(&instance)) {
+diff --git a/third_party/blink/renderer/modules/csspaint/css_paint_definition.cc b/third_party/blink/renderer/modules/csspaint/css_paint_definition.cc
+index a896af7822..124d324d8f 100644
+--- a/third_party/blink/renderer/modules/csspaint/css_paint_definition.cc
++++ b/third_party/blink/renderer/modules/csspaint/css_paint_definition.cc
+@@ -104,8 +104,18 @@ PaintRecord CSSPaintDefinition::Paint(
+     float zoom,
+     StylePropertyMapReadOnly* style_map,
+     const GCedCSSStyleValueVector* paint_arguments) {
++  if (!script_state_->ContextIsValid()) {
++    return PaintRecord();
++  }
+   const gfx::SizeF specified_size = GetSpecifiedSize(container_size, zoom);
+   ScriptState::Scope scope(script_state_);
++  v8::Isolate* isolate = script_state_->GetIsolate();
++
++  // Catch and report exceptions from both constructing the paint class and
++  // invoking paint() within the worklet scope so they never remain pending on
++  // the isolate and leak into synchronous callers.
++  v8::TryCatch try_catch(isolate);
++  try_catch.SetVerbose(true);
+ 
+   MaybeCreatePaintInstance();
+   // We may have failed to create an instance, in which case produce an
+@@ -113,8 +123,6 @@ PaintRecord CSSPaintDefinition::Paint(
+   if (instance_.IsEmpty())
+     return PaintRecord();
+ 
+-  v8::Isolate* isolate = script_state_->GetIsolate();
+-
+   // Do subpixel snapping for the |container_size|.
+   auto* rendering_context = MakeGarbageCollected<PaintRenderingContext2D>(
+       ToRoundedSize(container_size), context_settings_, zoom, global_scope_);
+@@ -133,9 +141,6 @@ PaintRecord CSSPaintDefinition::Paint(
+     paint_arguments = empty_arguments.Get();
+   }
+ 
+-  v8::TryCatch try_catch(isolate);
+-  try_catch.SetVerbose(true);
+-
+   // The paint function may have produced an error, in which case produce an
+   // invalid image.
+   if (paint_
+diff --git a/third_party/blink/renderer/modules/csspaint/paint_worklet_test.cc b/third_party/blink/renderer/modules/csspaint/paint_worklet_test.cc
+index 2d41957744..a9b554ce4a 100644
+--- a/third_party/blink/renderer/modules/csspaint/paint_worklet_test.cc
++++ b/third_party/blink/renderer/modules/csspaint/paint_worklet_test.cc
+@@ -5,8 +5,11 @@
+ #include "third_party/blink/renderer/modules/csspaint/paint_worklet.h"
+ 
+ #include <memory>
++
+ #include "testing/gmock/include/gmock/gmock.h"
+ #include "testing/gtest/include/gtest/gtest.h"
++#include "third_party/blink/renderer/bindings/core/v8/script_evaluation_result.h"
++#include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
+ #include "third_party/blink/renderer/bindings/core/v8/v8_gc_controller.h"
+ #include "third_party/blink/renderer/bindings/core/v8/worker_or_worklet_script_controller.h"
+ #include "third_party/blink/renderer/core/css/css_syntax_definition.h"
+@@ -22,6 +25,7 @@
+ #include "third_party/blink/renderer/modules/csspaint/paint_worklet_global_scope_proxy.h"
+ #include "third_party/blink/renderer/platform/graphics/paint_generated_image.h"
+ #include "third_party/blink/renderer/platform/testing/runtime_enabled_features_test_helpers.h"
++#include "v8/include/v8-exception.h"
+ 
+ namespace blink {
+ class TestPaintWorklet : public PaintWorklet {
+@@ -103,9 +107,15 @@ class PaintWorkletTest : public PageTestBase {
+     EXPECT_EQ(num_paints_before_switch, expected_num_paints_before_switch);
+   }
+ 
++  void TerminateProxy() {
++    if (proxy_) {
++      proxy_->TerminateWorkletGlobalScope();
++      proxy_ = nullptr;
++    }
++  }
++
+   void TearDown() override {
+-    proxy_->TerminateWorkletGlobalScope();
+-    proxy_ = nullptr;
++    TerminateProxy();
+     PageTestBase::TearDown();
+   }
+ 
+@@ -561,4 +571,113 @@ TEST_F(PaintWorkletTest, GeneratorNotifiedAfterAllRegistrations) {
+   EXPECT_TRUE(generator->IsImageGeneratorReady());
+ }
+ 
++TEST_F(PaintWorkletTest, ConstructorExceptionDoesNotPropagate) {
++  PaintWorkletGlobalScope* global_scope = GetProxy()->global_scope();
++  ScriptState* worklet_script_state =
++      global_scope->ScriptController()->GetScriptState();
++  ClassicScript::CreateUnspecifiedScript(R"JS(
++    globalThis.ctorCalls = 0;
++    globalThis.throwingPaintCalls = 0;
++    globalThis.validPaintCalls = 0;
++    globalThis.stringifiedInWorklet = false;
++    registerPaint('throwing-ctor', class {
++      constructor() {
++        ++globalThis.ctorCalls;
++        throw {
++          toString() {
++            globalThis.stringifiedInWorklet =
++                typeof PaintWorkletGlobalScope !== 'undefined' &&
++                typeof window === 'undefined';
++            return 'ctor-error';
++          }
++        };
++      }
++      paint(ctx, size) {
++        ++globalThis.throwingPaintCalls;
++        ctx.fillRect(0, 0, size.width, size.height);
++      }
++    });
++    registerPaint('valid-paint', class {
++      paint(ctx, size) {
++        ++globalThis.validPaintCalls;
++        ctx.fillRect(0, 0, size.width, size.height);
++      }
++    });
++  )JS")
++      ->RunScriptOnScriptState(worklet_script_state);
++
++  CSSPaintDefinition* throwing_definition =
++      global_scope->FindDefinition("throwing-ctor");
++  ASSERT_TRUE(throwing_definition);
++  CSSPaintDefinition* valid_definition =
++      global_scope->FindDefinition("valid-paint");
++  ASSERT_TRUE(valid_definition);
++
++  const LayoutObject& layout_object =
++      static_cast<const LayoutObject&>(*GetImageResourceObserver());
++  const gfx::SizeF container_size(100, 100);
++  const float zoom = layout_object.StyleRef().EffectiveZoom();
++  auto make_style_map = [&](const CSSPaintDefinition* def) {
++    return MakeGarbageCollected<PrepopulatedComputedStylePropertyMap>(
++        layout_object.GetDocument(), layout_object.StyleRef(),
++        def->NativeInvalidationProperties(),
++        def->CustomInvalidationProperties());
++  };
++  StylePropertyMapReadOnly* throwing_style_map =
++      make_style_map(throwing_definition);
++  StylePropertyMapReadOnly* valid_style_map = make_style_map(valid_definition);
++
++  ScriptState* main_script_state = ToScriptStateForMainWorld(&GetFrame());
++  ASSERT_TRUE(main_script_state);
++  {
++    ScriptState::Scope main_scope(main_script_state);
++    v8::TryCatch outer_try_catch(main_script_state->GetIsolate());
++
++    EXPECT_TRUE(throwing_definition
++                    ->Paint(container_size, zoom, throwing_style_map, nullptr)
++                    .empty());
++    EXPECT_FALSE(outer_try_catch.HasCaught());
++
++    // Subsequent paints after a failed constructor return an empty record
++    // without re-invoking the constructor or propagating an exception.
++    EXPECT_TRUE(throwing_definition
++                    ->Paint(container_size, zoom, throwing_style_map, nullptr)
++                    .empty());
++    EXPECT_FALSE(outer_try_catch.HasCaught());
++
++    // Valid definitions in the same global scope continue to paint normally.
++    EXPECT_FALSE(
++        valid_definition->Paint(container_size, zoom, valid_style_map, nullptr)
++            .empty());
++    EXPECT_FALSE(outer_try_catch.HasCaught());
++  }
++
++  {
++    ScriptState::Scope worklet_scope(worklet_script_state);
++    auto eval_worklet_expr = [&](const char* expr) {
++      ScriptEvaluationResult result =
++          ClassicScript::CreateUnspecifiedScript(expr)
++              ->RunScriptOnScriptStateAndReturnValue(
++                  worklet_script_state,
++                  ExecuteScriptPolicy::kExecuteScriptWhenScriptsDisabled);
++      EXPECT_EQ(result.GetResultType(),
++                ScriptEvaluationResult::ResultType::kSuccess)
++          << expr;
++      return result.GetResultType() ==
++                 ScriptEvaluationResult::ResultType::kSuccess &&
++             result.GetSuccessValue()->IsTrue();
++    };
++    EXPECT_TRUE(eval_worklet_expr("globalThis.ctorCalls === 1"));
++    EXPECT_TRUE(eval_worklet_expr("globalThis.throwingPaintCalls === 0"));
++    EXPECT_TRUE(eval_worklet_expr("globalThis.stringifiedInWorklet === true"));
++    EXPECT_TRUE(eval_worklet_expr("globalThis.validPaintCalls === 1"));
++  }
++
++  // Painting after the worklet context is invalidated returns an empty record.
++  TerminateProxy();
++  EXPECT_TRUE(
++      valid_definition->Paint(container_size, zoom, valid_style_map, nullptr)
++          .empty());
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/web_tests/external/wpt/css/css-layout-api/fallback-synchronous-errors.https.html b/third_party/blink/web_tests/external/wpt/css/css-layout-api/fallback-synchronous-errors.https.html
+new file mode 100644
+index 0000000000..1376772825
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/css/css-layout-api/fallback-synchronous-errors.https.html
+@@ -0,0 +1,111 @@
++<!DOCTYPE html>
++<meta charset="utf-8">
++<title>CSS Layout API: Synchronous layout worklet exceptions fall back without propagating</title>
++<link rel="help" href="https://drafts.css-houdini.org/css-layout-api-1/#get-a-layout-class-instance">
++<link rel="help" href="https://drafts.css-houdini.org/css-layout-api-1/#invoke-an-intrinsic-sizes-callback">
++<link rel="help" href="https://drafts.css-houdini.org/css-layout-api-1/#invoke-a-layout-callback">
++<script src="/resources/testharness.js"></script>
++<script src="/resources/testharnessreport.js"></script>
++<script src="/common/worklet-reftest.js"></script>
++<style>
++.box {
++  width: 100px;
++}
++.box > div {
++  height: 80px;
++}
++</style>
++<body>
++<div id="container"></div>
++
++<script id="code" type="text/worklet">
++registerLayout('throwing-ctor', class {
++  constructor() {
++    throw { source: 'layout-ctor' };
++  }
++  async intrinsicSizes() {}
++  async layout() {}
++});
++
++registerLayout('throwing-layout', class {
++  async intrinsicSizes() {
++    return { minContentSize: 10, maxContentSize: 20 };
++  }
++  layout() {
++    throw { source: 'layout-callback' };
++  }
++});
++
++registerLayout('throwing-intrinsic-sizes', class {
++  intrinsicSizes() {
++    throw { source: 'intrinsic-sizes-callback' };
++  }
++  async layout([child]) {
++    const fragment = await child.layoutNextFragment();
++    return { autoBlockSize: 40, childFragments: [fragment] };
++  }
++});
++
++registerLayout('valid-layout', class {
++  constructor() { this.ready = true; }
++  async intrinsicSizes() {
++    return { minContentSize: 35, maxContentSize: 70 };
++  }
++  async layout([child]) {
++    const fragment = await child.layoutNextFragment();
++    return {
++      autoBlockSize: this.ready ? 50 : 0,
++      childFragments: [fragment],
++    };
++  }
++});
++</script>
++
++<script>
++promise_test(async t => {
++  assert_implements('layoutWorklet' in CSS, 'CSS Layout API is not supported');
++
++  await importWorklet(CSS.layoutWorklet, document.getElementById('code').textContent);
++
++  const container = document.getElementById('container');
++
++  // CSS Layout API 1 #get-a-layout-class-instance step 2.3: throwing
++  // constructor falls back to flow layout without propagating to page script.
++  container.innerHTML =
++      '<div id="ctor-error" class="box" style="display: layout(throwing-ctor)"><div></div></div>';
++  assert_equals(document.getElementById('ctor-error').clientHeight, 80,
++      'throwing constructor falls back to block layout');
++
++  // Repeat with a fresh box to exercise constructor valid flag = false path.
++  container.innerHTML =
++      '<div id="ctor-error-retry" class="box" style="display: layout(throwing-ctor)"><div></div></div>';
++  assert_equals(document.getElementById('ctor-error-retry').clientHeight, 80,
++      'subsequent layout after throwing constructor falls back cleanly');
++
++  // CSS Layout API 1 #invoke-a-layout-callback step 14: synchronous throw in
++  // layout() falls back to flow layout without propagating to page script.
++  container.innerHTML =
++      '<div id="layout-error" class="box" style="display: layout(throwing-layout)"><div></div></div>';
++  assert_equals(document.getElementById('layout-error').clientHeight, 80,
++      'throwing layout() falls back to block layout');
++
++  // CSS Layout API 1 #invoke-an-intrinsic-sizes-callback step 11: synchronous
++  // throw in intrinsicSizes() falls back to flow layout without propagating.
++  container.innerHTML =
++      '<div id="sizes-wrap" style="width: min-content">' +
++        '<div style="display: layout(throwing-intrinsic-sizes)">' +
++          '<div style="width: 60px; height: 80px"></div>' +
++        '</div>' +
++      '</div>';
++  assert_equals(document.getElementById('sizes-wrap').offsetWidth, 60,
++      'throwing intrinsicSizes() falls back to block intrinsic sizes');
++
++  // Contrast check: valid layout class still runs after prior worklet errors.
++  container.innerHTML =
++      '<div id="valid-box" class="box" style="display: layout(valid-layout); width: min-content"><div></div></div>';
++  const validBox = document.getElementById('valid-box');
++  assert_equals(validBox.offsetWidth, 35, 'valid intrinsicSizes() succeeds');
++  assert_equals(validBox.clientHeight, 50, 'valid layout() succeeds');
++}, 'Synchronous exceptions in layout worklet constructors and callbacks fall back without propagating');
++</script>
++</body>
+diff --git a/third_party/blink/web_tests/external/wpt/css/css-paint-api/constructor-error-synchronous.https.html b/third_party/blink/web_tests/external/wpt/css/css-paint-api/constructor-error-synchronous.https.html
+new file mode 100644
+index 0000000000..759ba26e0c
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/css/css-paint-api/constructor-error-synchronous.https.html
+@@ -0,0 +1,104 @@
++<!DOCTYPE html>
++<meta charset="utf-8">
++<title>CSS Painting API: Paint class constructor and paint exceptions do not propagate synchronously</title>
++<link rel="help" href="https://drafts.css-houdini.org/css-paint-api-1/#invoke-a-paint-callback">
++<script src="/resources/testharness.js"></script>
++<script src="/resources/testharnessreport.js"></script>
++<script src="/common/worklet-reftest.js"></script>
++<body style="margin: 0">
++<div id="host"></div>
++
++<script id="code" type="text/worklet">
++registerPaint('throwing-ctor', class {
++  static get inputProperties() { return ['transform']; }
++  constructor() {
++    throw { source: 'paint-ctor' };
++  }
++  paint() {}
++});
++
++registerPaint('throwing-ctor-tostring', class {
++  static get inputProperties() { return ['transform']; }
++  constructor() {
++    throw {
++      toString() {
++        return 'paint-ctor-stringified';
++      }
++    };
++  }
++  paint() {}
++});
++
++registerPaint('throwing-ctor-secondary-tostring', class {
++  static get inputProperties() { return ['transform']; }
++  constructor() {
++    throw {
++      toString() {
++        throw { source: 'secondary-tostring-error' };
++      }
++    };
++  }
++  paint() {}
++});
++
++registerPaint('throwing-paint', class {
++  static get inputProperties() { return ['transform']; }
++  paint() {
++    throw { source: 'paint-callback' };
++  }
++});
++
++registerPaint('valid-painter', class {
++  static get inputProperties() { return ['transform']; }
++  paint(ctx, size) {
++    ctx.fillStyle = 'green';
++    ctx.fillRect(0, 0, size.width, size.height);
++  }
++});
++</script>
++
++<script>
++promise_test(async t => {
++  assert_implements('paintWorklet' in CSS, 'CSS Paint API is not supported');
++
++  await importWorklet(CSS.paintWorklet, document.getElementById('code').textContent);
++
++  // Pre-create an SVGRectElement wrapper so elementFromPoint() returns directly
++  // without initializing the SVGRectElement wrapper constructor during the
++  // first hit-test.
++  document.createElementNS('http://www.w3.org/2000/svg', 'rect');
++
++  const host = document.getElementById('host');
++  function triggerSynchronousPaint(name) {
++    host.innerHTML = `
++      <svg width="200" height="200">
++        <defs>
++          <rect id="masked" width="50" height="50"
++                style="mask-image: paint(${name}); transform: translate(1px, 1px)"/>
++          <filter id="flt"><feImage href="#masked"/></filter>
++        </defs>
++        <rect id="target" width="100" height="100" filter="url(#flt)"/>
++      </svg>`;
++    return document.elementFromPoint(5, 5);
++  }
++
++  // Per CSS Painting API 1 #invoke-a-paint-callback steps 5.3 and 13,
++  // exceptions thrown by the paint class constructor or paint() callback
++  // must produce an invalid image and never propagate to calling page script.
++  // Repeat 'throwing-ctor' three times to exercise the cached invalid
++  // constructor path across implementations with two global scopes.
++  for (const name of [
++    'throwing-ctor',
++    'throwing-ctor',
++    'throwing-ctor',
++    'throwing-ctor-tostring',
++    'throwing-ctor-secondary-tostring',
++    'throwing-paint',
++    'valid-painter',
++  ]) {
++    const hit = triggerSynchronousPaint(name);
++    assert_equals(hit, document.getElementById('target'), name);
++  }
++}, 'Paint worklet constructor and paint exceptions do not propagate out of synchronous hit-testing');
++</script>
++</body>
+-- 
+2.43.0
+

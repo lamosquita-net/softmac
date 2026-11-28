@@ -1,0 +1,143 @@
+From 1aea4cd840b1eb09d7eb2331e77eab544fc7c5ba Mon Sep 17 00:00:00 2001
+From: Andreas Haas <ahaas@google.com>
+Date: Thu, 26 Nov 2026 02:37:45 -0800
+Subject: [PATCH] [M159] [gin] Verify context match in PerContextData::From.
+
+Original change's description:
+> [gin] Verify context match in PerContextData::From.
+>
+> PerContextData::From reads a CppHeapPointerHandle from an embedder data
+> slot on v8::Context inside the V8 sandbox, where every PerContextData
+> shares the same pointer tag.
+>
+> Check that context_holder_ is non-null and holds the queried v8::Context
+> before returning the PerContextData, matching blink::ScriptState::From.
+>
+> TAG=agy
+> CONV=caf30a2f-bbeb-4e57-91e2-df58640217af
+>
+> Bug: 589478757
+> Test: gin_unittests --gtest_filter=PerContextDataTest.*
+> Change-Id: I5507841cd16c2da41e5d2172ba6570d9fdca198a
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8842707
+> Commit-Queue: Andreas Haas <ahaas@chromium.org>
+> Reviewed-by: Omer Katz <omerkatz@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1751939}
+
+(cherry picked from commit 0441109f8cba6479b7f514ac1f9b57b239e3ac77)
+
+Bug: 589982167,589478757
+Change-Id: I5507841cd16c2da41e5d2172ba6570d9fdca198a
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8870445
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1872}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ gin/per_context_data.cc          | 11 +++++++---
+ gin/per_context_data_unittest.cc | 35 ++++++++++++++++++++++++++++++++
+ gin/public/context_holder.h      |  5 +++++
+ 3 files changed, 48 insertions(+), 3 deletions(-)
+
+diff --git a/gin/per_context_data.cc b/gin/per_context_data.cc
+index 82b9be133d..4f97dc6f02 100644
+--- a/gin/per_context_data.cc
++++ b/gin/per_context_data.cc
+@@ -45,9 +45,14 @@ PerContextData* PerContextData::From(v8::Local<v8::Context> context) {
+   if (context->GetNumberOfEmbedderDataFields() <= kGinPerContextDataIndex) {
+     return nullptr;
+   }
+-  return context->GetAlignedPointerFromEmbedderData<PerContextData>(
+-      v8::Isolate::GetCurrent(), kGinPerContextDataIndex,
+-      static_cast<v8::CppHeapPointerTag>(gin::kGinPerContextData));
++  PerContextData* data =
++      context->GetAlignedPointerFromEmbedderData<PerContextData>(
++          v8::Isolate::GetCurrent(), kGinPerContextDataIndex,
++          static_cast<v8::CppHeapPointerTag>(gin::kGinPerContextData));
++  if (data) {
++    data->context_holder_->CheckContext(context);
++  }
++  return data;
+ }
+ 
+ }  // namespace gin
+diff --git a/gin/per_context_data_unittest.cc b/gin/per_context_data_unittest.cc
+index 7683a8a370..aa78ad8e5c 100644
+--- a/gin/per_context_data_unittest.cc
++++ b/gin/per_context_data_unittest.cc
+@@ -4,8 +4,11 @@
+ 
+ #include "gin/per_context_data.h"
+ 
++#include "base/test/gtest_util.h"
+ #include "gin/public/context_holder.h"
++#include "gin/public/gin_embedders.h"
+ #include "gin/public/isolate_holder.h"
++#include "gin/public/wrappable_pointer_tags.h"
+ #include "gin/test/v8_test.h"
+ #include "v8/include/v8-context.h"
+ #include "v8/include/v8-isolate.h"
+@@ -33,4 +36,36 @@ TEST_F(PerContextDataTest, LookupAndDestruction) {
+   EXPECT_TRUE(per_context_data == NULL);
+ }
+ 
++TEST_F(PerContextDataTest, ContextMismatchCrashes) {
++  v8::Isolate::Scope isolate_scope(instance_->isolate());
++  v8::HandleScope handle_scope(instance_->isolate());
++  v8::Local<v8::Context> context1 = v8::Context::New(instance_->isolate());
++  v8::Local<v8::Context> context2 = v8::Context::New(instance_->isolate());
++
++  ContextHolder context_holder1(instance_->isolate());
++  context_holder1.SetContext(context1);
++  ContextHolder context_holder2(instance_->isolate());
++  context_holder2.SetContext(context2);
++
++  PerContextData* data1 = PerContextData::From(context1);
++  PerContextData* data2 = PerContextData::From(context2);
++  ASSERT_NE(data1, nullptr);
++  ASSERT_NE(data2, nullptr);
++  EXPECT_EQ(&context_holder1, data1->context_holder());
++  EXPECT_EQ(&context_holder2, data2->context_holder());
++
++  constexpr int kGinPerContextDataIndex =
++      int{kPerContextDataStartIndex} + kEmbedderNativeGin;
++  context1->SetAlignedPointerInEmbedderData(
++      kGinPerContextDataIndex, data2,
++      static_cast<v8::CppHeapPointerTag>(gin::kGinPerContextData));
++
++  EXPECT_CHECK_DEATH(PerContextData::From(context1));
++
++  // Restore context1's PerContextData so context_holder1 detaches cleanly.
++  context1->SetAlignedPointerInEmbedderData(
++      kGinPerContextDataIndex, data1,
++      static_cast<v8::CppHeapPointerTag>(gin::kGinPerContextData));
++}
++
+ }  // namespace gin
+diff --git a/gin/public/context_holder.h b/gin/public/context_holder.h
+index 0fddb15b11..818b9bc053 100644
+--- a/gin/public/context_holder.h
++++ b/gin/public/context_holder.h
+@@ -5,6 +5,7 @@
+ #ifndef GIN_PUBLIC_CONTEXT_HOLDER_H_
+ #define GIN_PUBLIC_CONTEXT_HOLDER_H_
+ 
++#include "base/check.h"
+ #include "base/memory/raw_ptr.h"
+ #include "gin/gin_export.h"
+ #include "v8/include/cppgc/persistent.h"
+@@ -46,6 +47,10 @@ class GIN_EXPORT ContextHolder {
+ 
+   void SetContext(v8::Local<v8::Context> context);
+ 
++  void CheckContext(v8::Local<v8::Context> context) const {
++    CHECK(context_ == context);
++  }
++
+  private:
+   const raw_ptr<v8::Isolate> isolate_;
+   v8::UniquePersistent<v8::Context> context_;
+-- 
+2.43.0
+

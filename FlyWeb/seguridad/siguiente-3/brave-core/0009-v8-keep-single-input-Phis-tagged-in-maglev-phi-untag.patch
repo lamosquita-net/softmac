@@ -1,0 +1,214 @@
+From 2a9b21380d65e8e233062ddd42c15d268b28b882 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 12:42:15 +0000
+Subject: [PATCH] v8: keep single-input Phis tagged in maglev phi untagging
+ (7ef85e6153, crbug 587040688)
+
+M156 merge on V8 15.6 (15.6.75.85), cherry-pick of main b9c28af54c.
+Applied as is to 15.6.75.66.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kdhDkMC93UBtLuPkF
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  18 +++
+ ...aglev-phi-representation-selector.cc.patch |  19 +++
+ ...jsunit-turbolev-regress-587040688.js.patch | 135 ++++++++++++++++++
+ 3 files changed, 172 insertions(+)
+ create mode 100644 patches/v8/src-maglev-maglev-phi-representation-selector.cc.patch
+ create mode 100644 patches/v8/test-mjsunit-turbolev-regress-587040688.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 5e34eceb..3f28f565 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,21 @@
++# FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 7ef85e6153 (crbug 587040688)
++
++SEGURIDAD-PORTES-33, 25-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0009`). V8 15.6 7ef85e6153
++(15.6.75.85, 25-11; bugs 588740578 and 587040688; cherry-pick of main b9c28af54c). Applied as is to 15.6.75.66.
++Severity not published.
++
++- When a loop backedge died in the middle of `PrePhiUntaggingPhase`, later uses and deopt frames unwrapped the
++  1-input Phi to its input while earlier uses still pointed at the Phi. `MaglevPhiRepresentationSelector` could then
++  untag (truncate or unbox) that Phi inconsistently with its unwrapped uses: a JIT miscompile, the classic path to
++  type confusion. Single-input Phis now stay tagged.
++- `maglev-phi-representation-selector.cc` is not touched by any other `patches/v8` file. Maglev is on by default
++  in 156, so this is reachable from any page.
++
++**Cache epoch:** covered by the single 40 -> 41 bump of `siguiente-3` (`brave-core/0001`); no bytecode change.
++
++To check (D8-LINUX): mjsunit `turbolev/regress-587040688` (`--turbolev`), `maglev/*` and `turbolev/*`, with and
++without `--maglev`.
++
+ # FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix d76136bcef (crbug 589433702), ported from the M159 merge
+ 
+ SEGURIDAD-PORTES-33, 25-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0008`). **Not merged to 15.6
+diff --git a/patches/v8/src-maglev-maglev-phi-representation-selector.cc.patch b/patches/v8/src-maglev-maglev-phi-representation-selector.cc.patch
+new file mode 100644
+index 00000000..64282d3d
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-phi-representation-selector.cc.patch
+@@ -0,0 +1,19 @@
++diff --git a/src/maglev/maglev-phi-representation-selector.cc b/src/maglev/maglev-phi-representation-selector.cc
++index 5b44744d9e9517e13de2f6a2fb5f82259475c24e..1e672736354ca0d07a1508fc641ccc229f61c14a 100644
++--- a/src/maglev/maglev-phi-representation-selector.cc
+++++ b/src/maglev/maglev-phi-representation-selector.cc
++@@ -143,6 +143,14 @@ MaglevPhiRepresentationSelector::ProcessPhi(Phi* node) {
++     return ProcessPhiResult::kNone;
++   }
++ 
+++  if (node->input_count() == 1) {
+++    // Later passes unwrap single-input Phis to their input, so uses/deopt
+++    // frames may already bypass this Phi while earlier uses still point to it.
+++    // Keep it tagged so its representation cannot diverge from its input's.
+++    EnsurePhiInputsTagged(node);
+++    return ProcessPhiResult::kNone;
+++  }
+++
++   TRACE_UNTAGGING("Considering for untagging: " << PrintNodeLabel(node));
++ 
++   // {input_mask} represents the ValueRepresentation that {node} could have,
+diff --git a/patches/v8/test-mjsunit-turbolev-regress-587040688.js.patch b/patches/v8/test-mjsunit-turbolev-regress-587040688.js.patch
+new file mode 100644
+index 00000000..f564faea
+--- /dev/null
++++ b/patches/v8/test-mjsunit-turbolev-regress-587040688.js.patch
+@@ -0,0 +1,135 @@
++diff --git a/test/mjsunit/turbolev/regress-587040688.js b/test/mjsunit/turbolev/regress-587040688.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..690b8fca2296a4a6196afe0a7f88dc0c7c87a1a6
++--- /dev/null
+++++ b/test/mjsunit/turbolev/regress-587040688.js
++@@ -0,0 +1,129 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax --turbolev
+++
+++function id(x) {
+++  return x;
+++}
+++%PrepareFunctionForOptimization(id);
+++
+++(function TestPostLoopSmiUses() {
+++  const arr = [1, 2];
+++  const a = {s: 0.25};
+++  const b = {t: 3.5};
+++
+++  function inner(exit_early, cond) {
+++    let flag = id(exit_early);
+++    let p = cond ? 5 : a.s;
+++    let z;
+++    for (let i = 0;; i++) {
+++      z = p | 0;
+++      if (flag) {
+++        +p;
+++        break;
+++      }
+++      if (i > 1) return -1;
+++      p = b.t;
+++    }
+++    arr[0] = p;
+++    return p + z;
+++  }
+++  %PrepareFunctionForOptimization(inner);
+++
+++  function outer(cond) {
+++    return inner(true, cond);
+++  }
+++  %PrepareFunctionForOptimization(outer);
+++
+++  id(true);
+++  id(false);
+++  inner(true, true);
+++  inner(false, false);
+++  assertEquals(10, outer(true));
+++
+++  %OptimizeFunctionOnNextCall(outer);
+++  assertEquals(0.25, outer(false));
+++  %HeapObjectVerify(arr);
+++})();
+++
+++(function TestDeoptFrameUse() {
+++  const b = {t: 3.5};
+++
+++  function inner(exit_early, cond) {
+++    let flag = id(exit_early);
+++    let p = cond ? 5 : undefined;
+++    let z;
+++    let t;
+++    for (let i = 0;; i++) {
+++      z = p | 0;
+++      if (flag) {
+++        t = typeof p;
+++        break;
+++      }
+++      if (i > 1) return 'bail';
+++      p = b.t;
+++    }
+++    return t + z;
+++  }
+++  %PrepareFunctionForOptimization(inner);
+++
+++  function outer(cond) {
+++    return inner(true, cond);
+++  }
+++  %PrepareFunctionForOptimization(outer);
+++
+++  id(true);
+++  id(false);
+++  inner(true, true);
+++  inner(false, false);
+++  assertEquals('number5', outer(true));
+++
+++  %OptimizeFunctionOnNextCall(outer);
+++  assertEquals('undefined0', outer(false));
+++})();
+++
+++(function TestPostLoopHeapNumberSmiValue() {
+++  const arr = [1, 2];
+++  const b = {t: 3.5};
+++
+++  function makeHeapNumber5(x) {
+++    return x + 0.5;
+++  }
+++  %NeverOptimizeFunction(makeHeapNumber5);
+++
+++  function inner(exit_early, cond, x) {
+++    +x;
+++    let flag = id(exit_early);
+++    let p = cond ? 5 : x;
+++    let z;
+++    for (let i = 0;; i++) {
+++      z = p + 0.5;
+++      if (flag) {
+++        +p;
+++        break;
+++      }
+++      if (i > 1) return -1;
+++      p = b.t;
+++    }
+++    arr[0] = p;
+++    return (p + 1) + z;
+++  }
+++  %PrepareFunctionForOptimization(inner);
+++
+++  function outer(cond, x) {
+++    return inner(true, cond, x);
+++  }
+++  %PrepareFunctionForOptimization(outer);
+++
+++  id(true);
+++  id(false);
+++  inner(true, true, 1);
+++  inner(false, false, 1.5);
+++  assertEquals(11.5, outer(true, 1));
+++
+++  %OptimizeFunctionOnNextCall(outer);
+++  assertEquals(11.5, outer(false, makeHeapNumber5(4.5)));
+++  %HeapObjectVerify(arr);
+++})();
+-- 
+2.43.0
+

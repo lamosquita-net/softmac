@@ -1,0 +1,161 @@
+From 1b9688c24b4be1306ea11b7e22bda0da3a5d421e Mon Sep 17 00:00:00 2001
+From: Koji Ishii <kojii@chromium.org>
+Date: Wed, 25 Nov 2026 10:32:05 -0800
+Subject: [PATCH] [M159] [editing] Skip pseudo-elements in
+ `AbstractLineBox::PositionForPoint`
+
+Original change's description:
+> [editing] Skip pseudo-elements in `AbstractLineBox::PositionForPoint`
+>
+> `AbstractLineBox::CanBeCaretContainer()` skips lines that only contain
+> pseudo-elements, but `AbstractLineBox::PositionForPoint()` did not skip
+> pseudo-element inline leaves when a line also contains real DOM nodes.
+> As a result, vertical line navigation (`NextLinePosition` and
+> `PreviousLinePosition`) could anchor a `PositionInFlatTree` at a
+> pseudo-element (such as an inline-block `::before`/`::after` or
+> `::view-transition`), which violates selection/DOM invariants.
+>
+> Skip inline leaves without `NonPseudoNode()` in
+> `AbstractLineBox::PositionForPoint()` and resolve the closest leaf's
+> node via `NonPseudoNode()`.
+>
+> Fixed: 589812279
+> Change-Id: I7441338d0d6b402015108b040d261cb0fbf3d5ec
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8854013
+> Auto-Submit: Koji Ishii <kojii@chromium.org>
+> Reviewed-by: Kent Tamura <tkent@chromium.org>
+> Commit-Queue: Kent Tamura <tkent@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1753880}
+
+(cherry picked from commit a641294f5fce9e93d55be50bb0a0824b94865765)
+
+Bug: 590348660,589812279
+Change-Id: I7441338d0d6b402015108b040d261cb0fbf3d5ec
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8860683
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/branch-heads/8154@{#1757}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ .../core/editing/selection_modifier_line.cc   | 11 +++-
+ .../core/editing/selection_modifier_test.cc   | 58 +++++++++++++++++++
+ .../platform/runtime_enabled_features.json5   |  6 ++
+ 3 files changed, 74 insertions(+), 1 deletion(-)
+
+diff --git a/third_party/blink/renderer/core/editing/selection_modifier_line.cc b/third_party/blink/renderer/core/editing/selection_modifier_line.cc
+index 163df3edca..3ad7d0af85 100644
+--- a/third_party/blink/renderer/core/editing/selection_modifier_line.cc
++++ b/third_party/blink/renderer/core/editing/selection_modifier_line.cc
+@@ -178,6 +178,12 @@ class AbstractLineBox {
+         continue;
+       if (!cursor.Current().IsInlineLeaf())
+         continue;
++      if (RuntimeEnabledFeatures::SelectionLineSkipPseudoElementEnabled() &&
++          !cursor.Current().GetLayoutObject()->NonPseudoNode()) {
++        // Pseudo-elements (like ::before/::after) don't have DOM nodes that
++        // can be used for caret positioning.
++        continue;
++      }
+       if (only_editable_leaves && !IsEditable(cursor)) {
+         // This condition allows us to move editable to editable with skipping
+         // non-editable element.
+@@ -207,7 +213,10 @@ class AbstractLineBox {
+     }
+     if (!closest_leaf_child)
+       return PositionInFlatTreeWithAffinity();
+-    const Node* const node = closest_leaf_child.Current().GetNode();
++    const Node* const node =
++        RuntimeEnabledFeatures::SelectionLineSkipPseudoElementEnabled()
++            ? closest_leaf_child.Current().GetLayoutObject()->NonPseudoNode()
++            : closest_leaf_child.Current().GetNode();
+     if (!node)
+       return PositionInFlatTreeWithAffinity();
+     if (EditingIgnoresContent(*node)) {
+diff --git a/third_party/blink/renderer/core/editing/selection_modifier_test.cc b/third_party/blink/renderer/core/editing/selection_modifier_test.cc
+index 8cfeaf6423..0da95d9099 100644
+--- a/third_party/blink/renderer/core/editing/selection_modifier_test.cc
++++ b/third_party/blink/renderer/core/editing/selection_modifier_test.cc
+@@ -558,4 +558,62 @@ TEST_F(SelectionModifierTest, EditableVideo) {
+   }
+ }
+ 
++// Regression test for crbug.com/589812279: vertical line navigation should not
++// anchor the caret at a pseudo-element (e.g. ::before/::after with
++// display:inline-block) when the line also contains real DOM content.
++TEST_F(SelectionModifierTest, MoveByLineSkipsInlineBlockPseudoElement) {
++  LoadAhem();
++  InsertStyleElement(
++      "body { font: 10px/20px Ahem; }"
++      ".before::before { content: ''; display: inline-block; width: 60px; "
++      "height: 10px; }"
++      ".after::after { content: ''; display: inline-block; width: 60px; "
++      "height: 10px; }");
++
++  // Forward line move into a line starting with ::before.
++  {
++    const SelectionInDomTree selection = SetSelectionTextToBody(
++        "<div>|aaa</div>"
++        "<div class='before'>bbb</div>");
++    SelectionModifier modifier(GetFrame(), selection);
++    EXPECT_TRUE(modifier.Modify(SelectionModifyAlteration::kMove,
++                                SelectionModifyDirection::kForward,
++                                TextGranularity::kLine));
++    const SelectionInDomTree result = modifier.Selection().AsSelection();
++    EXPECT_FALSE(result.Anchor().AnchorNode()->IsPseudoElement());
++    EXPECT_EQ("<div>aaa</div><div class=\"before\">|bbb</div>",
++              GetSelectionTextFromBody(result));
++  }
++
++  // Backward line move into a line starting with ::before.
++  {
++    const SelectionInDomTree selection = SetSelectionTextToBody(
++        "<div class='before'>aaa</div>"
++        "<div>|bbb</div>");
++    SelectionModifier modifier(GetFrame(), selection);
++    EXPECT_TRUE(modifier.Modify(SelectionModifyAlteration::kMove,
++                                SelectionModifyDirection::kBackward,
++                                TextGranularity::kLine));
++    const SelectionInDomTree result = modifier.Selection().AsSelection();
++    EXPECT_FALSE(result.Anchor().AnchorNode()->IsPseudoElement());
++    EXPECT_EQ("<div class=\"before\">|aaa</div><div>bbb</div>",
++              GetSelectionTextFromBody(result));
++  }
++
++  // Forward line move into a line ending with ::after.
++  {
++    const SelectionInDomTree selection = SetSelectionTextToBody(
++        "<div>aaaaaaa|a</div>"
++        "<div class='after'>b</div>");
++    SelectionModifier modifier(GetFrame(), selection);
++    EXPECT_TRUE(modifier.Modify(SelectionModifyAlteration::kMove,
++                                SelectionModifyDirection::kForward,
++                                TextGranularity::kLine));
++    const SelectionInDomTree result = modifier.Selection().AsSelection();
++    EXPECT_FALSE(result.Anchor().AnchorNode()->IsPseudoElement());
++    EXPECT_EQ("<div>aaaaaaaa</div><div class=\"after\">b|</div>",
++              GetSelectionTextFromBody(result));
++  }
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+index 2f65e83da7..3ac9672efb 100644
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -5753,6 +5753,12 @@
+       name: "SelectionHandleWithBottomClipped",
+       status: "stable",
+     },
++    {
++      // Skip pseudo-element inline leaves in AbstractLineBox::PositionForPoint.
++      // See https://crbug.com/589812279
++      name: "SelectionLineSkipPseudoElement",
++      status: "stable",
++    },
+     {
+       // https://issues.chromium.org/issues/40502558
+       name: "SelectionRemoveRangeNotFoundError",
+-- 
+2.43.0
+

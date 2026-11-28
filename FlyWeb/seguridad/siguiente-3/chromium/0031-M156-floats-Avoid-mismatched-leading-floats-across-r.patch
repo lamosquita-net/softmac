@@ -1,0 +1,249 @@
+From 7e17b8952c77bd335a5598bd2ebeff0250778843 Mon Sep 17 00:00:00 2001
+From: Koji Ishii <kojii@chromium.org>
+Date: Thu, 26 Nov 2026 19:49:54 -0800
+Subject: [PATCH] [M156] [floats] Avoid mismatched leading floats across ruby
+ columns
+
+Original change's description:
+> [floats] Avoid mismatched leading floats across ruby columns
+>
+> `InlineLayoutAlgorithm::PositionLeadingFloats` previously walked past
+> `InlineItem::kOpenRubyColumn` (whose `IsEmptyItem()` is true) and
+> positioned floats inside `<ruby>` into `LeadingFloats`. Because
+> `LineBreaker::HandleRuby` lays out ruby columns in a sub-`LineBreaker`
+> with empty `LeadingFloats`, those floats were laid out again without
+> advancing `leading_floats_index_`, causing subsequent floats to consume
+> stale `LeadingFloat` entries by index.
+>
+> Fix this by:
+> - Stopping `PositionLeadingFloats` at `kOpenRubyColumn` and bailing when
+>   resuming a ruby break token (`RubyData()`).
+> - Recording each leading float's `InlineItem` index in `LeadingFloat`,
+>   asserting `CHECK_EQ` on `item_index` in `LineBreaker::HandleFloat`, and
+>   matching by `item_index` in `LineBreaker::RewindFloats`.
+>
+> Fixed: 589800513
+> Change-Id: I57750a5c03b1881d368252a5340d609677da8802
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8859290
+> Auto-Submit: Koji Ishii <kojii@chromium.org>
+> Reviewed-by: Kent Tamura <tkent@chromium.org>
+> Commit-Queue: Kent Tamura <tkent@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1753881}
+
+(cherry picked from commit dbefedf27bda4a437d839f76d7737305b353f66a)
+
+Bug: 590348310,589800513
+Change-Id: I57750a5c03b1881d368252a5340d609677da8802
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8857193
+Commit-Queue: Koji Ishii <kojii@chromium.org>
+Reviewed-by: Kent Tamura <tkent@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2448}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+---
+ .../layout/inline/inline_layout_algorithm.cc  | 18 +++++++++----
+ .../inline/inline_layout_algorithm_test.cc    | 26 +++++++++++++++++++
+ .../core/layout/inline/leading_floats.h       | 13 +++++++---
+ .../core/layout/inline/line_breaker.cc        | 17 +++++++++---
+ .../platform/runtime_enabled_features.json5   |  7 +++++
+ .../leading-float-in-ruby-crash.html          | 15 +++++++++++
+ 6 files changed, 84 insertions(+), 12 deletions(-)
+ create mode 100644 third_party/blink/web_tests/external/wpt/css/css-ruby/crashtests/leading-float-in-ruby-crash.html
+
+diff --git a/third_party/blink/renderer/core/layout/inline/inline_layout_algorithm.cc b/third_party/blink/renderer/core/layout/inline/inline_layout_algorithm.cc
+index db64ee1e16..1b340637b4 100644
+--- a/third_party/blink/renderer/core/layout/inline/inline_layout_algorithm.cc
++++ b/third_party/blink/renderer/core/layout/inline/inline_layout_algorithm.cc
+@@ -1730,8 +1730,12 @@ InlineLayoutAlgorithm::DoesRemainderFitInLineWithoutEllipsis(
+ void InlineLayoutAlgorithm::PositionLeadingFloats(
+     ExclusionSpace& exclusion_space,
+     LeadingFloats& leading_floats) {
+-  if (GetBreakToken() && GetBreakToken()->IsInParallelBlockFlow()) {
+-    // Bail, and let the line breaker deal with any kind of parallel flow.
++  if (GetBreakToken() &&
++      (GetBreakToken()->IsInParallelBlockFlow() ||
++       (RuntimeEnabledFeatures::RubySkipLeadingFloatsEnabled() &&
++        GetBreakToken()->RubyData()))) {
++    // Bail, and let the line breaker deal with any kind of parallel flow or
++    // ruby continuation.
+     return;
+   }
+ 
+@@ -1741,9 +1745,13 @@ void InlineLayoutAlgorithm::PositionLeadingFloats(
+   for (; index < items.size(); ++index) {
+     const InlineItem& item = *items[index];
+ 
+-    // Abort if we've found something non-empty.
+-    if (!item.IsEmptyItem())
++    // Abort if we've found something non-empty, or a ruby column (which may
++    // be handled by a sub-LineBreaker with empty LeadingFloats).
++    if (!item.IsEmptyItem() ||
++        (RuntimeEnabledFeatures::RubySkipLeadingFloatsEnabled() &&
++         item.Type() == InlineItem::kOpenRubyColumn)) {
+       break;
++    }
+ 
+     if (item.Type() != InlineItem::kFloating) {
+       continue;
+@@ -1771,7 +1779,7 @@ void InlineLayoutAlgorithm::PositionLeadingFloats(
+       }
+     }
+ 
+-    leading_floats.Add(positioned_float, parallel_break_token);
++    leading_floats.Add(index, positioned_float, parallel_break_token);
+   }
+ 
+   leading_floats.SetHandledIndex(index);
+diff --git a/third_party/blink/renderer/core/layout/inline/inline_layout_algorithm_test.cc b/third_party/blink/renderer/core/layout/inline/inline_layout_algorithm_test.cc
+index 5882c2a415..bdef3cd567 100644
+--- a/third_party/blink/renderer/core/layout/inline/inline_layout_algorithm_test.cc
++++ b/third_party/blink/renderer/core/layout/inline/inline_layout_algorithm_test.cc
+@@ -1464,5 +1464,31 @@ TEST_F(InlineLayoutAlgorithmTest, TextBoxTrimOnInlineBox) {
+   }
+ }
+ 
++TEST_F(InlineLayoutAlgorithmTest, LeadingFloatWithRuby) {
++  SetBodyInnerHTML(R"HTML(
++    <div id="container">
++      <div id="f0" style="float: left; width: 20px; height: 20px"></div><ruby><div id="f" style="float: left; width: 50px; height: 50px"></div><rt></rt></ruby><div id="h" style="float: left; width: 100px; height: 100px"></div>text
++    </div>
++  )HTML");
++  const LayoutBox* f0 = GetLayoutBoxByElementId("f0");
++  const LayoutBox* f = GetLayoutBoxByElementId("f");
++  const LayoutBox* h = GetLayoutBoxByElementId("h");
++  ASSERT_TRUE(f0);
++  ASSERT_TRUE(f);
++  ASSERT_TRUE(h);
++  EXPECT_EQ(f0->StitchedSize(), PhysicalSize(20, 20));
++  EXPECT_EQ(f->StitchedSize(), PhysicalSize(50, 50));
++  EXPECT_EQ(h->StitchedSize(), PhysicalSize(100, 100));
++
++  // Test `f0` and `h` are placed in the `container` IFC.
++  const LayoutBlockFlow* container =
++      To<LayoutBlockFlow>(GetLayoutObjectByElementId("container"));
++  for (const LayoutBox* target : {f0, h}) {
++    InlineCursor cursor(*container);
++    cursor.MoveTo(*target);
++    EXPECT_TRUE(cursor);
++  }
++}
++
+ }  // namespace
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/layout/inline/leading_floats.h b/third_party/blink/renderer/core/layout/inline/leading_floats.h
+index b21649e71d..78e422cc9e 100644
+--- a/third_party/blink/renderer/core/layout/inline/leading_floats.h
++++ b/third_party/blink/renderer/core/layout/inline/leading_floats.h
+@@ -19,11 +19,14 @@ struct LeadingFloat {
+   DISALLOW_NEW();
+ 
+  public:
+-  LeadingFloat(const PositionedFloat& positioned_float,
++  LeadingFloat(wtf_size_t item_index,
++               const PositionedFloat& positioned_float,
+                const InlineBreakToken* parallel_flow_break_token)
+-      : positioned_float(positioned_float),
++      : item_index(item_index),
++        positioned_float(positioned_float),
+         parallel_flow_break_token(parallel_flow_break_token) {}
+ 
++  wtf_size_t item_index;
+   PositionedFloat positioned_float;
+   Member<const InlineBreakToken> parallel_flow_break_token;
+ 
+@@ -41,9 +44,11 @@ class CORE_EXPORT LeadingFloats {
+  public:
+   ~LeadingFloats() { floats_.clear(); }
+ 
+-  void Add(const PositionedFloat& positioned_float,
++  void Add(wtf_size_t item_index,
++           const PositionedFloat& positioned_float,
+            const InlineBreakToken* parallel_flow_break_token) {
+-    floats_.emplace_back(positioned_float, parallel_flow_break_token);
++    floats_.emplace_back(item_index, positioned_float,
++                         parallel_flow_break_token);
+   }
+   void SetHandledIndex(wtf_size_t idx) { handled_index_ = idx; }
+ 
+diff --git a/third_party/blink/renderer/core/layout/inline/line_breaker.cc b/third_party/blink/renderer/core/layout/inline/line_breaker.cc
+index e126e872dd..9d82b4a3ab 100644
+--- a/third_party/blink/renderer/core/layout/inline/line_breaker.cc
++++ b/third_party/blink/renderer/core/layout/inline/line_breaker.cc
+@@ -3772,12 +3772,19 @@ void LineBreaker::HandleFloat(const InlineItem& item,
+   }
+ 
+   // Make sure we populate the positioned_float inside the |item_result|.
+-  if (current_.item_index <= leading_floats_.HandledIndex() &&
++  const bool use_leading_float_item_index =
++      RuntimeEnabledFeatures::RubySkipLeadingFloatsEnabled();
++  if ((use_leading_float_item_index
++           ? index_before_float.item_index < leading_floats_.HandledIndex()
++           : current_.item_index <= leading_floats_.HandledIndex()) &&
+       !leading_floats_.Empty()) {
+     DCHECK_LT(leading_floats_index_, leading_floats_.Count());
+ 
+     const LeadingFloat& leading_float =
+         leading_floats_.At(leading_floats_index_++);
++    if (use_leading_float_item_index) {
++      CHECK_EQ(leading_float.item_index, index_before_float.item_index);
++    }
+     item_result->positioned_float = leading_float.positioned_float;
+     if (leading_float.parallel_flow_break_token) {
+       line_info->PropagateParallelFlowBreakToken(
+@@ -3882,9 +3889,13 @@ void LineBreaker::RewindFloats(unsigned new_end,
+       // Adjust `leading_floats_index_` if this is a leading float. See
+       // `HandleFloat` and `PositionLeadingFloats`.
+       if (item_index < leading_floats_.HandledIndex()) {
++        const bool use_leading_float_item_index =
++            RuntimeEnabledFeatures::RubySkipLeadingFloatsEnabled();
+         for (unsigned i = 0; i < leading_floats_.Count(); ++i) {
+-          if (leading_floats_.At(i).positioned_float.layout_result ==
+-              item_result.positioned_float->layout_result) {
++          if (use_leading_float_item_index
++                  ? leading_floats_.At(i).item_index == item_index
++                  : leading_floats_.At(i).positioned_float.layout_result ==
++                        item_result.positioned_float->layout_result) {
+             leading_floats_index_ = i;
+             // Need to restore `exclusion_space_` even if leading floats don't
+             // modify `exclusion_space_`, because there may be following
+diff --git a/third_party/blink/renderer/platform/runtime_enabled_features.json5 b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+index b121e93efd..d649d9f7e4 100644
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -5487,6 +5487,13 @@
+       name: "RTCSvcScalabilityMode",
+       status: "stable",
+     },
++    {
++      // Prevents PositionLeadingFloats from positioning floats inside ruby
++      // columns, and verifies leading float item indices match in
++      // LineBreaker::HandleFloat. https://crbug.com/589800513
++      name: "RubySkipLeadingFloats",
++      status: "stable",
++    },
+     {
+       // Runs a microtask checkpoint before prepare script in
+       // XML Parser. This was added in M148 and can be removed
+diff --git a/third_party/blink/web_tests/external/wpt/css/css-ruby/crashtests/leading-float-in-ruby-crash.html b/third_party/blink/web_tests/external/wpt/css/css-ruby/crashtests/leading-float-in-ruby-crash.html
+new file mode 100644
+index 0000000000..6936ed2749
+--- /dev/null
++++ b/third_party/blink/web_tests/external/wpt/css/css-ruby/crashtests/leading-float-in-ruby-crash.html
+@@ -0,0 +1,15 @@
++<!DOCTYPE html>
++<link rel="help" href="https://issues.chromium.org/issues/589800513">
++<style>
++#m { columns: 3; column-fill: auto; height: 100px; width: 750px; gap: 0 }
++#f { float: left; width: 78% }
++#d { container: d / inline-size }
++#cut { display: contents }
++@container d (max-width: 149px) { #cut { display: block; height: 300px } }
++#h { float: left; width: 5px; height: 5px }
++</style>
++<div id="m">
++  <div style="display: flow-root">
++    <ruby><fieldset id="g" style="display: contents"><div id="f"><div id="d"><div id="cut"><div></div></div></div></div></fieldset><rt></rt></ruby><div id="h"></div>text
++  </div>
++</div>
+-- 
+2.43.0
+

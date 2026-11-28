@@ -1,0 +1,74 @@
+From 9bb9a824249d34d9d28f871a947b6808bbf0e96f Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 04:36:10 +0000
+Subject: [PATCH] Roll libvpx to 6f89cfbcc9 (as M159), fixing crbug 586941063
+
+Same libvpx revision as branch-heads/8154 5c240af776 ("Cherry-pick libvpx
+6f89cfbcc9 to m159"): DEPS, the gitlink, README.chromium and
+vpx_version.h. From FlyWeb's a00f6762db (de61454cf8 + 3.1.4 parte6
+libvpx/0001 = upstream 0a6d123f0c, already included) to 6f89cfbcc9:
+27 upstream commits, including 6f89cfbcc9 "vp9: Fix base_mv usage when
+lower SVC layers are skipped" (586941063). libvpx_srcs.gni and the
+generated config for mac/x64 and linux/x64 are identical between 8078
+and 8154, so nothing is regenerated.
+
+Bug: 586941063
+---
+ DEPS                                           | 2 +-
+ third_party/libvpx/README.chromium             | 2 +-
+ third_party/libvpx/source/config/vpx_version.h | 6 +++---
+ third_party/libvpx/source/libvpx               | 2 +-
+ 4 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/DEPS b/DEPS
+index 81741c37ae..09cbadf286 100644
+--- a/DEPS
++++ b/DEPS
+@@ -2683,7 +2683,7 @@ deps = {
+     Var('chromium_git') + '/chromiumos/platform/libva-fake-driver.git' + '@' + '04f902b9ba9f8083b19d22e7b55591bbcaae31c0',
+ 
+   'src/third_party/libvpx/source/libvpx':
+-    Var('chromium_git') + '/webm/libvpx.git' + '@' +  'a00f6762dbcd39ebbdae546c514c898257f72c09',
++    Var('chromium_git') + '/webm/libvpx.git' + '@' +  '6f89cfbcc99f02451106a82c97c05e5682364502',
+ 
+   'src/third_party/libwebm/source':
+     Var('chromium_git') + '/webm/libwebm.git' + '@' + '6184f4484a826724b5293837134ab9492261b941',
+diff --git a/third_party/libvpx/README.chromium b/third_party/libvpx/README.chromium
+index d4fd4eecba..df92c266a7 100644
+--- a/third_party/libvpx/README.chromium
++++ b/third_party/libvpx/README.chromium
+@@ -1,7 +1,7 @@
+ Name: libvpx
+ URL: https://chromium.googlesource.com/webm/libvpx
+ Version: N/A
+-Revision: de61454cf81594d5927899da122fc53dcc4a846e
++Revision: 6f89cfbcc99f02451106a82c97c05e5682364502
+ Update Mechanism: Manual
+ CPEPrefix: cpe:/a:webmproject:libvpx:1.17.0
+ License: BSD-3-Clause, WebM-Project-Patent
+diff --git a/third_party/libvpx/source/config/vpx_version.h b/third_party/libvpx/source/config/vpx_version.h
+index a297f91d56..d6876bddad 100644
+--- a/third_party/libvpx/source/config/vpx_version.h
++++ b/third_party/libvpx/source/config/vpx_version.h
+@@ -4,8 +4,8 @@
+ #define VERSION_MAJOR  1
+ #define VERSION_MINOR  17
+ #define VERSION_PATCH  0
+-#define VERSION_EXTRA  "63-gde61454cf"
++#define VERSION_EXTRA  "89-g6f89cfbcc"
+ #define VERSION_PACKED ((VERSION_MAJOR<<16)|(VERSION_MINOR<<8)|(VERSION_PATCH))
+-#define VERSION_STRING_NOSP "v1.17.0-63-gde61454cf"
+-#define VERSION_STRING      " v1.17.0-63-gde61454cf"
++#define VERSION_STRING_NOSP "v1.17.0-89-g6f89cfbcc"
++#define VERSION_STRING      " v1.17.0-89-g6f89cfbcc"
+ #endif  // VPX_VERSION_H_
+diff --git a/third_party/libvpx/source/libvpx b/third_party/libvpx/source/libvpx
+index a00f6762db..6f89cfbcc9 160000
+--- a/third_party/libvpx/source/libvpx
++++ b/third_party/libvpx/source/libvpx
+@@ -1 +1 @@
+-Subproject commit a00f6762dbcd39ebbdae546c514c898257f72c09
++Subproject commit 6f89cfbcc99f02451106a82c97c05e5682364502
+-- 
+2.43.0
+

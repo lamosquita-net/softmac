@@ -1,0 +1,322 @@
+From ecaf2cb36a337c96974616cac819a407e70e59f7 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Fri, 27 Nov 2026 09:24:55 +0000
+Subject: [PATCH 13/14] v8: retain the enumerator map across the for-in enum
+ cache load (a2c4c5c9dd, crbug 590253989)
+
+V8 15.6 merge a2c4c5c9dd (15.6.75.90; cherry-pick of main 8a6bd48d91).
+In Maglev and Turbolev the enum cache load in VisitForInNext did not keep
+the enumerator map alive; if the map was collected the GC could
+right-trim the enum cache and later accesses read out of bounds. Retain
+the map across the load, as TurboFan already does.
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 19 +++++++
+ ...turboshaft-turbolev-graph-builder.cc.patch | 17 +++++++
+ .../src-maglev-maglev-graph-builder.cc.patch  | 14 +++++-
+ ...src-maglev-maglev-graph-optimizer.cc.patch | 16 ++++++
+ patches/v8/src-maglev-maglev-ir.cc.patch      | 24 +++++++++
+ patches/v8/src-maglev-maglev-ir.h.patch       | 38 +++++++++++++-
+ ...-mjsunit-maglev-regress-590253989.js.patch | 50 +++++++++++++++++++
+ ...jsunit-turbolev-regress-590253989.js.patch | 49 ++++++++++++++++++
+ 8 files changed, 223 insertions(+), 4 deletions(-)
+ create mode 100644 patches/v8/src-compiler-turboshaft-turbolev-graph-builder.cc.patch
+ create mode 100644 patches/v8/src-maglev-maglev-graph-optimizer.cc.patch
+ create mode 100644 patches/v8/src-maglev-maglev-ir.cc.patch
+ create mode 100644 patches/v8/test-mjsunit-maglev-regress-590253989.js.patch
+ create mode 100644 patches/v8/test-mjsunit-turbolev-regress-590253989.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index a5939c46..8c67415b 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,22 @@
++# FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix a2c4c5c9dd (crbug 590253989)
++
++SEGURIDAD-PORTES-33, 27-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0013`). V8 15.6 a2c4c5c9dd
++(15.6.75.90, 27-11; bugs 590971898 and 590253989; cherry-pick of main 8a6bd48d91; M159 twin b10dd63a16, 15.9.128.44).
++Applied as is to 15.6.75.66 (`maglev-graph-builder.cc` and `maglev-ir.h` already had FlyWeb patches; no conflict;
++every file's base blob matches upstream's). Severity not published.
++
++- In Maglev and Turbolev, the enum cache load of `for-in` (`VisitForInNext`) did not keep the enumerator map alive. If
++  that map was collected, the GC could right-trim the enum cache, and the following accesses read out of bounds.
++  TurboFan already had the fix (crrev.com/c/8820107).
++- Now a new Maglev node, `Retain`, keeps the enumerator map alive across the enum cache load (Turbolev lowers it to
++  Turboshaft's `Retain`; a constant map is retained on the code object). New tests
++  `mjsunit/maglev/regress-590253989.js` and `mjsunit/turbolev/regress-590253989.js`.
++
++**Cache epoch:** covered by the single 40 -> 41 bump of `siguiente-3` (`brave-core/0001`); no bytecode change.
++
++To check (D8-LINUX): build and run mjsunit `maglev/regress-590253989` and `turbolev/regress-590253989` (with their
++flags), `maglev/*` and `turbolev/*`, with and without `--maglev`.
++
+ # FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 1941d806d2 (crbug 585624824)
+ 
+ SEGURIDAD-PORTES-33, 27-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0012`). V8 15.6 1941d806d2
+diff --git a/patches/v8/src-compiler-turboshaft-turbolev-graph-builder.cc.patch b/patches/v8/src-compiler-turboshaft-turbolev-graph-builder.cc.patch
+new file mode 100644
+index 00000000..a1824241
+--- /dev/null
++++ b/patches/v8/src-compiler-turboshaft-turbolev-graph-builder.cc.patch
+@@ -0,0 +1,17 @@
++diff --git a/src/compiler/turboshaft/turbolev-graph-builder.cc b/src/compiler/turboshaft/turbolev-graph-builder.cc
++index a6e00c86105e3f2419d2228740e0cbb1fe298095..ce70e2d7d038d7d7cf662f125d1cff5d14690e6c 100644
++--- a/src/compiler/turboshaft/turbolev-graph-builder.cc
+++++ b/src/compiler/turboshaft/turbolev-graph-builder.cc
++@@ -5770,6 +5770,12 @@ class GraphBuildingNodeProcessor {
++     return maglev::ProcessResult::kContinue;
++   }
++ 
+++  maglev::ProcessResult Process(maglev::Retain* node,
+++                                const maglev::ProcessingState&) {
+++    __ Retain(Map(node->ValueInput()));
+++    return maglev::ProcessResult::kContinue;
+++  }
+++
++   maglev::ProcessResult Process(maglev::TurbofanStaticAssert* node,
++                                 const maglev::ProcessingState&) {
++     V<Word32> condition = __ TaggedEqual(
+diff --git a/patches/v8/src-maglev-maglev-graph-builder.cc.patch b/patches/v8/src-maglev-maglev-graph-builder.cc.patch
+index 0ceab799..6b0c848c 100644
+--- a/patches/v8/src-maglev-maglev-graph-builder.cc.patch
++++ b/patches/v8/src-maglev-maglev-graph-builder.cc.patch
+@@ -1,5 +1,5 @@
+ diff --git a/src/maglev/maglev-graph-builder.cc b/src/maglev/maglev-graph-builder.cc
+-index 69fe4b26b5ef19e168e9dbde6525739d5623d34d..ad34e3586ce2f158572b6eb8f259c185a5c342f9 100644
++index 69fe4b26b5ef19e168e9dbde6525739d5623d34d..6e40f0c95faab00d1b6d85aed7a16c39f1a8da7d 100644
+ --- a/src/maglev/maglev-graph-builder.cc
+ +++ b/src/maglev/maglev-graph-builder.cc
+ @@ -1807,9 +1807,13 @@ bool IsConsString(ValueNode* string) {
+@@ -65,7 +65,17 @@ index 69fe4b26b5ef19e168e9dbde6525739d5623d34d..ad34e3586ce2f158572b6eb8f259c185
+  
+    // If the right hand side is a ConsString, then we can create a ConsString.
+    // This doesn't work with the left hand side, since the right hand side of a
+-@@ -15800,9 +15807,16 @@ ReduceResult MaglevGraphBuilder::VisitSwitchOnGeneratorState() {
++@@ -15555,6 +15562,9 @@ ReduceResult MaglevGraphBuilder::VisitForInNext() {
++       GET_VALUE_OR_ABORT(
++           key, BuildLoadFixedArrayElement(cache_array, index,
++                                           LoadType::kInternalizedString));
+++      // Keep the enumerator map alive so that a GC before the load cannot
+++      // right-trim the shared enum cache if the map check above is eliminated.
+++      RETURN_IF_ABORT(AddNewNode<Retain>({cache_type}));
++       SetAccumulator(key);
++ 
++       current_for_in_state.receiver = receiver;
++@@ -15800,9 +15810,16 @@ ReduceResult MaglevGraphBuilder::VisitSwitchOnGeneratorState() {
+        generator, new_state, offsetof(JSGeneratorObject, continuation_),
+        StoreTaggedMode::kDefault));
+  
+diff --git a/patches/v8/src-maglev-maglev-graph-optimizer.cc.patch b/patches/v8/src-maglev-maglev-graph-optimizer.cc.patch
+new file mode 100644
+index 00000000..73aecae6
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-graph-optimizer.cc.patch
+@@ -0,0 +1,16 @@
++diff --git a/src/maglev/maglev-graph-optimizer.cc b/src/maglev/maglev-graph-optimizer.cc
++index 259732b5a518c64021353e22cea8af83d96e677b..5a53fb89ec0ceb2f78b253616d5b4bdc373b89f6 100644
++--- a/src/maglev/maglev-graph-optimizer.cc
+++++ b/src/maglev/maglev-graph-optimizer.cc
++@@ -1284,6 +1284,11 @@ ProcessResult MaglevGraphOptimizer::VisitAssumeType(AssumeType*,
++   return ProcessResult::kContinue;
++ }
++ 
+++ProcessResult MaglevGraphOptimizer::VisitRetain(Retain*,
+++                                                const ProcessingState&) {
+++  return ProcessResult::kContinue;
+++}
+++
++ ProcessResult MaglevGraphOptimizer::VisitTurbofanStaticAssert(
++     TurbofanStaticAssert*, const ProcessingState&) {
++   return ProcessResult::kContinue;
+diff --git a/patches/v8/src-maglev-maglev-ir.cc.patch b/patches/v8/src-maglev-maglev-ir.cc.patch
+new file mode 100644
+index 00000000..da7f6660
+--- /dev/null
++++ b/patches/v8/src-maglev-maglev-ir.cc.patch
+@@ -0,0 +1,24 @@
++diff --git a/src/maglev/maglev-ir.cc b/src/maglev/maglev-ir.cc
++index 499f75cb9a360eab84f70e6f75a9e748854f997f..b80e8d4f8fe3b5f82b2dbe1bd0dc89cabb3718b2 100644
++--- a/src/maglev/maglev-ir.cc
+++++ b/src/maglev/maglev-ir.cc
++@@ -5209,6 +5209,19 @@ void DebugBreak::GenerateCode(MaglevAssembler* masm,
++   __ DebugBreak();
++ }
++ 
+++void Retain::SetValueLocationConstraints() {
+++  // For non-constant values, UseAny extends the input's live range up to this
+++  // node so safepoints keep it alive across GC without emitting code here.
+++  UseAny(ValueInput());
+++}
+++void Retain::GenerateCode(MaglevAssembler* masm, const ProcessingState& state) {
+++  // UseAny does not keep constants alive (they have no register/stack-slot
+++  // safepoint entries), so retain HeapConstants on the code object directly.
+++  if (HeapConstant* constant = ValueInput().node()->TryCast<HeapConstant>()) {
+++    masm->code_gen_state()->Retain(constant->object().object());
+++  }
+++}
+++
++ int Abort::MaxCallStackArgs() const {
++   DCHECK_EQ(Runtime::FunctionForId(Runtime::kAbort)->nargs, 1);
++   return 1;
+diff --git a/patches/v8/src-maglev-maglev-ir.h.patch b/patches/v8/src-maglev-maglev-ir.h.patch
+index 25c5a99d..1fb267c7 100644
+--- a/patches/v8/src-maglev-maglev-ir.h.patch
++++ b/patches/v8/src-maglev-maglev-ir.h.patch
+@@ -1,8 +1,42 @@
+ diff --git a/src/maglev/maglev-ir.h b/src/maglev/maglev-ir.h
+-index c1b16a843499f102d8d724ba9a3ef9c560e1f1d4..853a1a02b49c5f437f785330cafc4325127aa0dd 100644
++index c1b16a843499f102d8d724ba9a3ef9c560e1f1d4..24df98b9b59d7df92420fb98290b7cb8efe21040 100644
+ --- a/src/maglev/maglev-ir.h
+ +++ b/src/maglev/maglev-ir.h
+-@@ -9930,6 +9930,12 @@ class StringConcat : public FixedInputValueNodeT<2, StringConcat> {
++@@ -464,6 +464,7 @@ class ExceptionHandlerInfo;
++   V(CheckInstanceType)                        \
++   V(Dead)                                     \
++   V(DebugBreak)                               \
+++  V(Retain)                                   \
++   V(MajorGCForCompilerTesting)                \
++   V(FunctionEntryStackCheck)                  \
++   V(GeneratorStore)                           \
++@@ -7726,6 +7727,25 @@ class AssumeType : public NodeT<AssumeType> {
++   const NodeType asserted_type_;
++ };
++ 
+++class Retain : public FixedInputNodeT<1, Retain> {
+++ public:
+++  explicit Retain(uint64_t bitfield) : Base(bitfield) {}
+++
+++  static constexpr OpProperties kProperties = OpProperties::NotIdempotent();
+++
+++  DECLARE_INPUTS(Value)
+++  DECLARE_INPUT_TYPES(Tagged)
+++
+++#ifdef V8_COMPRESS_POINTERS
+++  void MarkTaggedInputsAsDecompressing() {
+++    // Don't need to decompress just to keep the object alive.
+++  }
+++#endif
+++
+++  void SetValueLocationConstraints();
+++  void GenerateCode(MaglevAssembler*, const ProcessingState&);
+++};
+++
++ class TurbofanStaticAssert : public FixedInputNodeT<1, TurbofanStaticAssert> {
++  public:
++   explicit TurbofanStaticAssert(uint64_t bitfield) : Base(bitfield) {}
++@@ -9930,6 +9950,12 @@ class StringConcat : public FixedInputValueNodeT<2, StringConcat> {
+      }
+      return cur;
+    }
+diff --git a/patches/v8/test-mjsunit-maglev-regress-590253989.js.patch b/patches/v8/test-mjsunit-maglev-regress-590253989.js.patch
+new file mode 100644
+index 00000000..4afc83d0
+--- /dev/null
++++ b/patches/v8/test-mjsunit-maglev-regress-590253989.js.patch
+@@ -0,0 +1,50 @@
++diff --git a/test/mjsunit/maglev/regress-590253989.js b/test/mjsunit/maglev/regress-590253989.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..57879da8e9f6d323ba8a34d9f9150b12d0631c86
++--- /dev/null
+++++ b/test/mjsunit/maglev/regress-590253989.js
++@@ -0,0 +1,44 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax --maglev
+++
+++const keepParentMap = {};
+++keepParentMap.a = 1;
+++
+++function makeHolder() {
+++  const o = {};
+++  o.a = 1;
+++  o.b = 2;
+++  const h = {};
+++  h.x = o;
+++  return h;
+++}
+++%NeverOptimizeFunction(makeHolder);
+++
+++const other = {y: 0, x: 0};
+++
+++function getSecondKey() {
+++  const h = makeHolder();
+++  const o = h.x;
+++  let first = true;
+++  for (const key in o) {
+++    if (first) {
+++      first = false;
+++      h.x = o;
+++      other.x = 1;
+++      other.y = h.x.a;
+++      %MajorGCForCompilerTesting();
+++      continue;
+++    }
+++    return key;
+++  }
+++}
+++
+++%PrepareFunctionForOptimization(getSecondKey);
+++assertEquals('b', getSecondKey());
+++assertEquals('b', getSecondKey());
+++%OptimizeMaglevOnNextCall(getSecondKey);
+++assertEquals('b', getSecondKey());
+++if (!isTurboFanned(getSecondKey)) assertMaglevved(getSecondKey);
+diff --git a/patches/v8/test-mjsunit-turbolev-regress-590253989.js.patch b/patches/v8/test-mjsunit-turbolev-regress-590253989.js.patch
+new file mode 100644
+index 00000000..05111f19
+--- /dev/null
++++ b/patches/v8/test-mjsunit-turbolev-regress-590253989.js.patch
+@@ -0,0 +1,49 @@
++diff --git a/test/mjsunit/turbolev/regress-590253989.js b/test/mjsunit/turbolev/regress-590253989.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..726681f77f7c2c2f3e77d9c5a21ab417febb49fb
++--- /dev/null
+++++ b/test/mjsunit/turbolev/regress-590253989.js
++@@ -0,0 +1,43 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --allow-natives-syntax --turbolev
+++
+++const keep_parent_map = {};
+++keep_parent_map.a = 1;
+++
+++function makeHolder() {
+++  const o = {};
+++  o.a = 1;
+++  o.b = 2;
+++  const h = {};
+++  h.x = o;
+++  return h;
+++}
+++%NeverOptimizeFunction(makeHolder);
+++
+++const other = {y: 0, x: 0};
+++
+++function getSecondKey() {
+++  const h = makeHolder();
+++  const o = h.x;
+++  let first = true;
+++  for (const key in o) {
+++    if (first) {
+++      first = false;
+++      h.x = o;
+++      other.x = 1;
+++      other.y = h.x.a;
+++      %MajorGCForCompilerTesting();
+++      continue;
+++    }
+++    return key;
+++  }
+++}
+++
+++%PrepareFunctionForOptimization(getSecondKey);
+++assertEquals('b', getSecondKey());
+++assertEquals('b', getSecondKey());
+++%OptimizeFunctionOnNextCall(getSecondKey);
+++assertEquals('b', getSecondKey());
+-- 
+2.43.0
+

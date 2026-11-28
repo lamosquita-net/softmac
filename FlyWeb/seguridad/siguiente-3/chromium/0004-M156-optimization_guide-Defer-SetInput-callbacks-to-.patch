@@ -1,0 +1,357 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alan Ding <alanding@chromium.org>
+Date: Mon, 23 Nov 2026 21:40:16 +0000
+Subject: [PATCH 4/5] [M156] [optimization_guide] Defer SetInput() callbacks to
+ avoid UAF
+
+Original change's description:
+> [optimization_guide] Defer SetInput() callbacks to avoid UAF
+>
+> AIManager binds ownership of a pending OnDeviceSession into its
+> SetInput() callback, causing a use-after-free if SessionImpl or
+> OnDeviceContext runs or drops that callback with `this` still on the
+> stack, and hanging/leaking if GetOrCreateSession() has an empty input
+> context or the service disconnects mid-prefill.
+>
+> Wrap non-null callbacks with base::BindPostTaskToCurrentDefault() in
+> SessionImpl::AddContextImpl() (adding one task hop rather than brittle
+> per-branch ordering alone), read `feature_` before running callbacks,
+> and resolve `callback_` on empty input or session/client disconnect.
+>
+> Fixed: 570347667, 562796602
+> Test: components_unittests --gtest_filter=SessionImplTest.SetInput*
+> Cq-Exclude-Trybots: luci.chrome.try:optimization_guide-win64
+> Change-Id: I0c4cc79bacb3114ee0f34c8ee56a9406a3fb22bf
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8821456
+> Reviewed-by: Mike Wittman <wittman@chromium.org>
+> Commit-Queue: Alan Ding <alanding@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1747440}
+
+(cherry picked from commit ca9dfbc33011bf87313b8fb346c57f68f3d3f96f)
+
+Bug: 587681029,570347667,562796602
+Change-Id: I0c4cc79bacb3114ee0f34c8ee56a9406a3fb22bf
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8846003
+Reviewed-by: Mike Wittman <wittman@chromium.org>
+Commit-Queue: Alan Ding <alanding@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8078@{#2396}
+Cr-Branched-From: c50edc4214d81e4f944c3415d55104a49e46d214-refs/heads/main@{#1706539}
+
+FlyWeb: the merge 6c0126a13b, applied unchanged to the 156 tree (FlyWeb 3.2.2).
+---
+ .../model_execution/on_device_capability.h    |   3 +-
+ .../core/model_execution/on_device_context.cc |  31 ++++-
+ .../core/model_execution/on_device_context.h  |   1 +
+ .../core/model_execution/session_impl.cc      |  12 +-
+ .../model_execution/session_impl_unittest.cc  | 127 ++++++++++++++++++
+ 5 files changed, 163 insertions(+), 11 deletions(-)
+
+diff --git a/components/optimization_guide/core/model_execution/on_device_capability.h b/components/optimization_guide/core/model_execution/on_device_capability.h
+index 9df947f1d4..b23ded9662 100644
+--- a/components/optimization_guide/core/model_execution/on_device_capability.h
++++ b/components/optimization_guide/core/model_execution/on_device_capability.h
+@@ -253,7 +253,8 @@ class OnDeviceSession {
+   // for use in later prompt templates based on the request. Calling this will
+   // cancel any ongoing executions and invoke their 'callback' methods with
+   // the 'kCancelled' error. `callback` will be called with either the number
+-  // of tokens processed from `request` or an error.
++  // of tokens processed from `request` or an error, and may safely destroy
++  // `this` session.
+   using SetInputCallback =
+       base::OnceCallback<void(base::expected<size_t, OnDeviceError>)>;
+   virtual void SetInput(MultimodalMessage request,
+diff --git a/components/optimization_guide/core/model_execution/on_device_context.cc b/components/optimization_guide/core/model_execution/on_device_context.cc
+index b31945ae3d..2c365b1220 100644
+--- a/components/optimization_guide/core/model_execution/on_device_context.cc
++++ b/components/optimization_guide/core/model_execution/on_device_context.cc
+@@ -4,9 +4,11 @@
+ 
+ #include "components/optimization_guide/core/model_execution/on_device_context.h"
+ 
++#include "base/functional/bind.h"
+ #include "base/metrics/histogram_functions.h"
+ #include "base/strings/strcat.h"
+ #include "base/strings/to_string.h"
++#include "base/types/expected.h"
+ #include "components/optimization_guide/core/model_execution/multimodal_message.h"
+ #include "components/optimization_guide/core/model_execution/on_device_capability.h"
+ #include "components/optimization_guide/core/optimization_guide_features.h"
+@@ -114,6 +116,8 @@ OnDeviceContext::OnDeviceContext(OnDeviceOptions opts,
+                                  mojom::OnDeviceFeature feature)
+     : opts_(std::move(opts)), feature_(feature) {
+   CHECK(opts_.session_params.sampling_params.has_value());
++  clients_.set_disconnect_handler(base::BindRepeating(
++      &OnDeviceContext::OnDisconnect, base::Unretained(this)));
+ }
+ OnDeviceContext::~OnDeviceContext() = default;
+ 
+@@ -163,11 +167,14 @@ OnDeviceContext::GetOrCreateSession() {
+   params->temperature = opts_.session_params.sampling_params->temperature;
+   opts_.model_client->StartSession(session_.BindNewPipeAndPassReceiver(),
+                                    std::move(params));
+-  session_.reset_on_disconnect();
++  session_.set_disconnect_handler(
++      base::BindOnce(&OnDeviceContext::OnDisconnect, base::Unretained(this)));
+   session_->SetPriority(priority_);
+   tokens_processed_ = 0;
+   if (input_->pieces.size() > 0) {
+     Append(input_->Clone());
++  } else if (callback_) {
++    std::move(callback_).Run(0);
+   }
+   return session_;
+ }
+@@ -192,7 +199,8 @@ std::unique_ptr<OnDeviceContext> OnDeviceContext::Clone() {
+   CloneSession(context->session_.BindNewPipeAndPassReceiver(),
+                /*logged_request=*/nullptr, /*ignore_context=*/false);
+   context->SetPriority(priority_);
+-  context->session_.reset_on_disconnect();
++  context->session_.set_disconnect_handler(base::BindOnce(
++      &OnDeviceContext::OnDisconnect, base::Unretained(context.get())));
+   return context;
+ }
+ 
+@@ -221,9 +229,23 @@ void OnDeviceContext::Append(on_device_model::mojom::InputPtr input) {
+   session_->Append(std::move(options), std::move(pending));
+ }
+ 
++void OnDeviceContext::OnDisconnect() {
++  session_.reset();
++  clients_.Clear();
++  tokens_processed_ = 0;
++  if (callback_) {
++    std::move(callback_).Run(base::unexpected(OnDeviceError::kGenericFailure));
++  }
++}
++
+ void OnDeviceContext::OnComplete(uint32_t tokens_processed) {
+   tokens_processed_ += tokens_processed;
+   clients_.Remove(clients_.current_receiver());
++  base::UmaHistogramCounts10000(
++      base::StrCat({"OptimizationGuide.ModelExecution."
++                    "OnDeviceContextTokensProcessed.",
++                    base::ToString(feature_)}),
++      tokens_processed);
+   if (clients_.empty() && callback_) {
+     // TODO(crbug.com/406585895): tokens_processed_ will not include tokens that
+     // were processed when this OnDeviceContext was created by calling Clone().
+@@ -231,11 +253,6 @@ void OnDeviceContext::OnComplete(uint32_t tokens_processed) {
+     // instead.
+     std::move(callback_).Run(tokens_processed_);
+   }
+-  base::UmaHistogramCounts10000(
+-      base::StrCat({"OptimizationGuide.ModelExecution."
+-                    "OnDeviceContextTokensProcessed.",
+-                    base::ToString(feature_)}),
+-      tokens_processed);
+ }
+ 
+ }  // namespace optimization_guide
+diff --git a/components/optimization_guide/core/model_execution/on_device_context.h b/components/optimization_guide/core/model_execution/on_device_context.h
+index 0ca62879c8..40e5752102 100644
+--- a/components/optimization_guide/core/model_execution/on_device_context.h
++++ b/components/optimization_guide/core/model_execution/on_device_context.h
+@@ -93,6 +93,7 @@ class OnDeviceContext : public on_device_model::mojom::ContextClient {
+ 
+  private:
+   void Append(on_device_model::mojom::InputPtr input);
++  void OnDisconnect();
+ 
+   // on_device_model::mojom::ContextClient:
+   void OnComplete(uint32_t tokens_processed) override;
+diff --git a/components/optimization_guide/core/model_execution/session_impl.cc b/components/optimization_guide/core/model_execution/session_impl.cc
+index 83aa8412d7..a16c69e391 100644
+--- a/components/optimization_guide/core/model_execution/session_impl.cc
++++ b/components/optimization_guide/core/model_execution/session_impl.cc
+@@ -14,6 +14,7 @@
+ #include "base/strings/strcat.h"
+ #include "base/strings/stringprintf.h"
+ #include "base/strings/to_string.h"
++#include "base/task/bind_post_task.h"
+ #include "base/time/time.h"
+ #include "base/timer/elapsed_timer.h"
+ #include "base/token.h"
+@@ -104,11 +105,14 @@ const TokenLimits& SessionImpl::GetTokenLimits() const {
+ 
+ void SessionImpl::SetInput(MultimodalMessage request,
+                            SetInputCallback callback) {
++  // `AddContextImpl()` may destroy `this` synchronously (e.g., via
++  // `on_device_execution_->Cancel()`, or if `BindPostTask` fails at shutdown).
++  const mojom::OnDeviceFeature feature = feature_;
+   const auto result = AddContextImpl(std::move(request), std::move(callback));
+   base::UmaHistogramEnumeration(
+       base::StrCat(
+           {"OptimizationGuide.ModelExecution.OnDeviceAddContextResult.",
+-           GetVariantName(feature_)}),
++           GetVariantName(feature)}),
+       result);
+ }
+ 
+@@ -121,8 +125,10 @@ SessionImpl::AddContextResult SessionImpl::AddContextImpl(
+     MultimodalMessage request,
+     SetInputCallback callback) {
+   if (callback) {
+-    callback = mojo::WrapCallbackWithDefaultInvokeIfNotRun(
+-        std::move(callback), base::unexpected(OnDeviceError::kCancelled));
++    // Never run or destroy `callback` on this stack, as it may own `this`.
++    callback = base::BindPostTaskToCurrentDefault(
++        mojo::WrapCallbackWithDefaultInvokeIfNotRun(
++            std::move(callback), base::unexpected(OnDeviceError::kCancelled)));
+   }
+   context_ = std::move(request);
+   context_start_time_ = base::TimeTicks::Now();
+diff --git a/components/optimization_guide/core/model_execution/session_impl_unittest.cc b/components/optimization_guide/core/model_execution/session_impl_unittest.cc
+index cf5963c8a2..8df2f25714 100644
+--- a/components/optimization_guide/core/model_execution/session_impl_unittest.cc
++++ b/components/optimization_guide/core/model_execution/session_impl_unittest.cc
+@@ -19,6 +19,7 @@
+ #include "base/test/bind.h"
+ #include "base/test/metrics/histogram_tester.h"
+ #include "base/test/power_monitor_test.h"
++#include "base/test/run_until.h"
+ #include "base/test/scoped_feature_list.h"
+ #include "base/test/task_environment.h"
+ #include "base/test/test_future.h"
+@@ -107,6 +108,21 @@ const std::string& GetCheckText(
+   return log.request().text_safety_model_request().text();
+ }
+ 
++// Returns a callback that owns `session` and destroys it before running
++// `callback`, matching `AIManager` during initial input prefill.
++OnDeviceSession::SetInputCallback DestroySessionThen(
++    std::unique_ptr<OnDeviceSession> session,
++    OnDeviceSession::SetInputCallback callback) {
++  return base::BindOnce(
++      [](std::unique_ptr<OnDeviceSession> session,
++         OnDeviceSession::SetInputCallback callback,
++         base::expected<size_t, OnDeviceError> result) {
++        session.reset();
++        std::move(callback).Run(result);
++      },
++      std::move(session), std::move(callback));
++}
++
+ }  // namespace
+ 
+ std::string ConcatResponses(const std::vector<std::string>& responses) {
+@@ -1824,6 +1840,117 @@ TEST_F(SessionImplTest, SetInputCallbackError) {
+   EXPECT_EQ(future.Get().error(), OnDeviceError::kInvalidRequest);
+ }
+ 
++TEST_F(SessionImplTest, SetInputCallbackDestroysSession) {
++  Initialize();
++  auto session = CreateSession(SessionConfigParams{});
++  ASSERT_TRUE(session);
++  auto* raw_session = session.get();
++
++  base::test::TestFuture<base::expected<size_t, OnDeviceError>> future;
++  raw_session->SetInput(
++      MultimodalMessage(UserInputRequest("foo")),
++      DestroySessionThen(std::move(session), future.GetCallback()));
++  EXPECT_EQ(*future.Get(), std::string("ctx:foo").size());
++}
++
++TEST_F(SessionImplTest, SetInputCallbackDestroysSessionUsingServer) {
++  Initialize();
++  broker_.settings().service_disconnect_reason =
++      on_device_model::ServiceDisconnectReason::kGpuBlocked;
++  auto session = CreateSession(SessionConfigParams{});
++  ASSERT_TRUE(session);
++  auto* raw_session = session.get();
++  ASSERT_TRUE(base::test::RunUntil([&] {
++    return !static_cast<SessionImpl*>(raw_session)->ShouldUseOnDeviceModel();
++  }));
++
++  base::HistogramTester histogram_tester;
++  base::test::TestFuture<base::expected<size_t, OnDeviceError>> future;
++  raw_session->SetInput(
++      MultimodalMessage(UserInputRequest("foo")),
++      DestroySessionThen(std::move(session), future.GetCallback()));
++  EXPECT_FALSE(future.IsReady());
++  histogram_tester.ExpectUniqueSample(
++      "OptimizationGuide.ModelExecution.OnDeviceAddContextResult.Test",
++      SessionImpl::AddContextResult::kUsingServer, 1);
++  EXPECT_EQ(future.Get().error(), OnDeviceError::kCancelled);
++}
++
++TEST_F(SessionImplTest, SetInputCallbackDestroysSessionInvalidRequest) {
++  Initialize();
++  auto session = CreateSession(SessionConfigParams{});
++  ASSERT_TRUE(session);
++  auto* raw_session = session.get();
++
++  base::HistogramTester histogram_tester;
++  base::test::TestFuture<base::expected<size_t, OnDeviceError>> future;
++  raw_session->SetInput(
++      MultimodalMessage(proto::ExampleForTestingRequest()),
++      DestroySessionThen(std::move(session), future.GetCallback()));
++  EXPECT_FALSE(future.IsReady());
++  histogram_tester.ExpectUniqueSample(
++      "OptimizationGuide.ModelExecution.OnDeviceAddContextResult.Test",
++      SessionImpl::AddContextResult::kFailedConstructingInput, 1);
++  EXPECT_EQ(future.Get().error(), OnDeviceError::kInvalidRequest);
++}
++
++TEST_F(SessionImplTest, SetInputCallbackDestroysSessionEmptyInputContext) {
++  Initialize([]() {
++    proto::SolutionConfig config;
++    *config.mutable_feature() = SimpleComposeConfigForTesting();
++    config.mutable_feature()
++        ->mutable_input_config()
++        ->clear_input_context_substitutions();
++    return config;
++  }());
++
++  // Connected session (prefix-update branch with 0 pieces).
++  {
++    auto session = CreateSession(SessionConfigParams{});
++    ASSERT_TRUE(session);
++    auto* raw_session = session.get();
++    base::test::TestFuture<base::expected<size_t, OnDeviceError>> future;
++    raw_session->SetInput(
++        MultimodalMessage(PageUrlRequest("foo")),
++        DestroySessionThen(std::move(session), future.GetCallback()));
++    EXPECT_FALSE(future.IsReady());
++    EXPECT_EQ(*future.Get(), 0u);
++  }
++
++  // Reconnecting session (`GetOrCreateSession()` branch with 0 pieces).
++  {
++    auto session = CreateSession(SessionConfigParams{});
++    ASSERT_TRUE(session);
++    broker_.launcher().CrashService();
++    task_environment_.FastForwardBy(base::Milliseconds(1));
++    auto* raw_session = session.get();
++    base::test::TestFuture<base::expected<size_t, OnDeviceError>> future;
++    raw_session->SetInput(
++        MultimodalMessage(PageUrlRequest("foo")),
++        DestroySessionThen(std::move(session), future.GetCallback()));
++    EXPECT_FALSE(future.IsReady());
++    EXPECT_EQ(*future.Get(), 0u);
++  }
++}
++
++TEST_F(SessionImplTest, SetInputCallbackDestroysSessionServiceDisconnect) {
++  Initialize();
++  broker_.settings().set_append_delay(base::Seconds(10));
++  auto session = CreateSession(SessionConfigParams{});
++  ASSERT_TRUE(session);
++  auto* raw_session = session.get();
++
++  base::test::TestFuture<base::expected<size_t, OnDeviceError>> future;
++  raw_session->SetInput(
++      MultimodalMessage(UserInputRequest("foo")),
++      DestroySessionThen(std::move(session), future.GetCallback()));
++  task_environment_.FastForwardBy(base::Seconds(1));
++  ASSERT_FALSE(future.IsReady());
++
++  broker_.launcher().CrashService();
++  EXPECT_EQ(future.Get().error(), OnDeviceError::kGenericFailure);
++}
++
+ TEST_F(SessionImplTest, TokenCounts) {
+   Initialize();
+ 
+-- 
+2.43.0
+

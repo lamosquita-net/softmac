@@ -1,0 +1,76 @@
+From 49b46cb6eeb89013520abd9d29e89a9d4edc58fc Mon Sep 17 00:00:00 2001
+From: Dave Tapuska <dtapuska@chromium.org>
+Date: Fri, 27 Nov 2026 12:44:32 -0800
+Subject: [PATCH] [M159] [lens] Only focus overlay WebView when tab is
+ activated
+
+Original change's description:
+> [lens] Only focus overlay WebView when tab is activated
+>
+> In `OverlayBaseController::ShowOverlay()`, mirror the existing
+> `tab_->IsActivated()` guard in `HideOverlay()` so `RequestFocus()` is
+> only called when the overlay's tab is active.
+>
+> When a tab-scoped overlay (such as the Glic selection overlay in split
+> view) is backgrounded and later reshown via `TabForegrounded()` while
+> still inactive, unconditionally calling `overlay_web_view_->RequestFocus()`
+> steals focus from the active tab and can synchronously trigger
+> tab-activation callbacks during another tab's notification.
+>
+> Bug: 589800523
+> Change-Id: I324373af394917429e4da3070c686f1a029c34f7
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8844925
+> Reviewed-by: Juan Mojica <juanmojica@google.com>
+> Commit-Queue: Dave Tapuska <dtapuska@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1753798}
+
+(cherry picked from commit 11b504e0e0fe37e82548c5b8131b3ad3b4aa5c7e)
+
+Bug: 590348127,589800523
+Change-Id: I324373af394917429e4da3070c686f1a029c34f7
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8874224
+Auto-Submit: chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com <chrome-cherry-picker@chops-service-accounts.iam.gserviceaccount.com>
+Pure-Cherry-Pick: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: Dave Tapuska <dtapuska@chromium.org>
+Cr-Commit-Position: refs/branch-heads/8154@{#2034}
+Cr-Branched-From: 5abc82b75a12aba2070f008c93349d463e81dc10-refs/heads/main@{#1739869}
+---
+ chrome/browser/ui/lens/overlay_base_controller.cc | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/chrome/browser/ui/lens/overlay_base_controller.cc b/chrome/browser/ui/lens/overlay_base_controller.cc
+index c7c61e4db5..b37c48f6b6 100644
+--- a/chrome/browser/ui/lens/overlay_base_controller.cc
++++ b/chrome/browser/ui/lens/overlay_base_controller.cc
+@@ -679,8 +679,11 @@ void OverlayBaseController::ShowOverlay() {
+     SetLiveBlurImpl(should_enable_live_blur_on_show_);
+ 
+     // The overlay needs to be focused on show to immediately begin
+-    // receiving key events.
+-    overlay_web_view_->RequestFocus();
++    // receiving key events. Avoid stealing focus when reshowing an inactive
++    // split-view tab.
++    if (tab_->IsActivated()) {
++      overlay_web_view_->RequestFocus();
++    }
+ 
+     // Disable mouse and keyboard inputs to the tab contents web view. Do this
+     // after the overlay takes focus. If it is done before, focus will move from
+@@ -713,9 +716,12 @@ void OverlayBaseController::ShowOverlay() {
+   tab_contents_view_observer_.Observe(overlay_view_);
+ 
+   // The overlay needs to be focused on show to immediately begin
+-  // receiving key events.
++  // receiving key events. Avoid stealing focus when reshowing an inactive
++  // split-view tab.
+   CHECK(overlay_web_view_);
+-  overlay_web_view_->RequestFocus();
++  if (tab_->IsActivated()) {
++    overlay_web_view_->RequestFocus();
++  }
+ 
+   // Disable mouse and keyboard inputs to the tab contents web view. Do this
+   // after the overlay takes focus. If it is done before, focus will move from
+-- 
+2.43.0
+

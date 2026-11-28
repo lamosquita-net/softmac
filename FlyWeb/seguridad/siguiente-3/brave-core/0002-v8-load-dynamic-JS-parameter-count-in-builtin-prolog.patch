@@ -1,0 +1,841 @@
+From 114ced67cfc7be87e225e0c207dc75eedb073919 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Tue, 24 Nov 2026 09:49:49 +0000
+Subject: [PATCH] v8: load dynamic JS parameter count in builtin prolog
+ (c20e1a6e22, crbug 581560002)
+
+Port of the V8 15.9 merge c20e1a6e22 ([M159] [sandbox] Load dynamic JS
+parameter count in builtin prolog; main 30ec9a07; bugs 465487205,
+581560002) to 15.6.75.66 as patches/v8. TFJ trampoline builtins now
+load and cache the dynamic parameter count from the JSDispatchTable at
+the very start of the prolog, before a stack check or allocation can
+trigger a GC that frees the unrooted incoming dispatch entry.
+
+All code hunks apply unchanged to 15.6.75.66. mjsunit.status takes the
+new SKIP in the 15.6 'not has_webassembly' block, on top of the
+existing FlyWeb hunk. New test sandbox/regress/regress-581560002.js.
+The code cache epoch is already 41 for this batch.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kdhDkMC93UBtLuPkF
+---
+ patches/v8/FLYWEB-SECURITY.md                 | 22 ++++++
+ patches/v8/src-builtins-base.tq.patch         | 14 ++++
+ ...rc-builtins-builtins-internal-gen.cc.patch | 14 ++++
+ .../src-builtins-builtins-utils-gen.h.patch   | 15 ++++
+ patches/v8/src-builtins-js-to-wasm.tq.patch   | 45 +++++++++++
+ ...-builtins-js-trampoline-assembler.cc.patch | 70 +++++++++++++++++
+ ...c-builtins-js-trampoline-assembler.h.patch | 14 ++++
+ ...uiltins-wasm-interpreter-wrappers.tq.patch | 18 +++++
+ .../src-codegen-code-stub-assembler.cc.patch  | 70 +++++++++++++++++
+ .../src-codegen-code-stub-assembler.h.patch   | 47 ++++++++++++
+ ...-turboshaft-builtins-assembler-inl.h.patch | 15 ++++
+ .../v8/src-compiler-code-assembler.cc.patch   | 47 ++++++++++++
+ .../v8/src-compiler-code-assembler.h.patch    | 36 +++++++++
+ ...rc-compiler-raw-machine-assembler.cc.patch | 23 ++++++
+ ...src-compiler-raw-machine-assembler.h.patch | 31 ++++++++
+ .../src-sandbox-js-dispatch-table-inl.h.patch | 19 +++++
+ patches/v8/src-torque-constants.h.patch       | 12 +++
+ ...src-torque-implementation-visitor.cc.patch | 27 +++++++
+ patches/v8/src-torque-type-oracle.h.patch     | 15 ++++
+ patches/v8/test-mjsunit-mjsunit.status.patch  | 10 ++-
+ ...sandbox-regress-regress-581560002.js.patch | 76 +++++++++++++++++++
+ 21 files changed, 639 insertions(+), 1 deletion(-)
+ create mode 100644 patches/v8/src-builtins-base.tq.patch
+ create mode 100644 patches/v8/src-builtins-builtins-internal-gen.cc.patch
+ create mode 100644 patches/v8/src-builtins-builtins-utils-gen.h.patch
+ create mode 100644 patches/v8/src-builtins-js-to-wasm.tq.patch
+ create mode 100644 patches/v8/src-builtins-js-trampoline-assembler.cc.patch
+ create mode 100644 patches/v8/src-builtins-js-trampoline-assembler.h.patch
+ create mode 100644 patches/v8/src-builtins-wasm-interpreter-wrappers.tq.patch
+ create mode 100644 patches/v8/src-codegen-code-stub-assembler.cc.patch
+ create mode 100644 patches/v8/src-codegen-code-stub-assembler.h.patch
+ create mode 100644 patches/v8/src-codegen-turboshaft-builtins-assembler-inl.h.patch
+ create mode 100644 patches/v8/src-compiler-code-assembler.cc.patch
+ create mode 100644 patches/v8/src-compiler-code-assembler.h.patch
+ create mode 100644 patches/v8/src-compiler-raw-machine-assembler.cc.patch
+ create mode 100644 patches/v8/src-compiler-raw-machine-assembler.h.patch
+ create mode 100644 patches/v8/src-sandbox-js-dispatch-table-inl.h.patch
+ create mode 100644 patches/v8/src-torque-constants.h.patch
+ create mode 100644 patches/v8/src-torque-implementation-visitor.cc.patch
+ create mode 100644 patches/v8/src-torque-type-oracle.h.patch
+ create mode 100644 patches/v8/test-mjsunit-sandbox-regress-regress-581560002.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 86f1d803..23295115 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,25 @@
++# FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix c20e1a6e22 (crbug 581560002), ported from the M159 merge
++
++SEGURIDAD-PORTES-33, 24-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0002`). **Not merged to V8 15.6
++upstream yet**: ported from the M159 merge c20e1a6e22 (V8 15.9.128.35; cherry-pick of 30ec9a07 from main; bugs 465487205
++and 581560002). Severity not published; it is a V8 sandbox bug.
++
++- TFJ trampoline builtins read the dynamic JS parameter count from the JSDispatchTable entry of the incoming dispatch
++  handle late, after `PerformStackCheck` or a call/allocation. A GC there could free the unrooted entry, and the count was
++  then read from a freed (and possibly reused) entry. Now `EmitBuiltinProlog` loads and caches the count at the very
++  start; `SetSupportsDynamicParameterCount` and `JSTrampolineAssembler::CompileLazy` take the cached value, Torque passes
++  it instead of the `DispatchHandle` type, and the load sites `DCHECK(IsAtStart())`.
++- Every code hunk applies unchanged to 15.6.75.66 (18 files); no other `patches/v8` file touches them. All 15.6 callers of
++  the changed signatures (`SetSupportsDynamicParameterCount` in `base.tq`, `js-to-wasm.tq` x3,
++  `wasm-interpreter-wrappers.tq`; `CompileLazy` in `js-trampoline-assembler.*`; `GetDispatchHandleType` and
++  `DISPATCH_HANDLE_TYPE_STRING` in Torque) are in the patched files. `mjsunit.status`: the new `[SKIP]` goes into the 15.6
++  `not has_webassembly` block, on top of the existing FlyWeb hunk. Plus the test `sandbox/regress/regress-581560002.js`.
++
++**Cache epoch:** covered by the single 40 -> 41 bump of `siguiente-3` (`brave-core/0001`).
++
++To check (D8-LINUX): build `v8` (Torque and the builtins change), `d8` with the sandbox testing flags, mjsunit
++`sandbox/regress/regress-581560002`, `wasm/*` and `sandbox/*`.
++
+ # FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 1faf157db2 (crbug 585869521), ported from the M159 merge
+ 
+ SEGURIDAD-PORTES-33, 23-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0001`). **Not merged to V8 15.6
+diff --git a/patches/v8/src-builtins-base.tq.patch b/patches/v8/src-builtins-base.tq.patch
+new file mode 100644
+index 00000000..0e5cfbf2
+--- /dev/null
++++ b/patches/v8/src-builtins-base.tq.patch
+@@ -0,0 +1,14 @@
++diff --git a/src/builtins/base.tq b/src/builtins/base.tq
++index 3bbd3108699b15cdbbb3237fbb6400f905d44aa8..c4ec28960a27a6522f62331102584659bda680dd 100644
++--- a/src/builtins/base.tq
+++++ b/src/builtins/base.tq
++@@ -753,9 +753,6 @@ extern macro Comment(constexpr string): void;
++ extern macro DebugBreak(): void;
++ extern macro PrintStringSimple(String): void;
++ 
++-extern macro SetSupportsDynamicParameterCount(
++-    JSFunction, DispatchHandle): void;
++-
++ // ES6 7.1.4 ToInteger ( argument )
++ transitioning macro ToIntegerImpl(
++     implicit context: Context)(input: JSAny): Number {
+diff --git a/patches/v8/src-builtins-builtins-internal-gen.cc.patch b/patches/v8/src-builtins-builtins-internal-gen.cc.patch
+new file mode 100644
+index 00000000..fafbf9de
+--- /dev/null
++++ b/patches/v8/src-builtins-builtins-internal-gen.cc.patch
+@@ -0,0 +1,14 @@
++diff --git a/src/builtins/builtins-internal-gen.cc b/src/builtins/builtins-internal-gen.cc
++index 74703bcdb5c8c8c6a377db0ae1dce4095e02f7c5..bf4a706842db0262aaaca9107e84f1d278813e50 100644
++--- a/src/builtins/builtins-internal-gen.cc
+++++ b/src/builtins/builtins-internal-gen.cc
++@@ -89,8 +89,7 @@ TF_BUILTIN(DebugBreakTrampoline, CodeStubAssembler) {
++ #ifdef V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE
++   auto dispatch_handle =
++       UncheckedParameter<JSDispatchHandleT>(Descriptor::kJSDispatchHandle);
++-  TNode<Uint16T> expected_parameter_count =
++-      LoadParameterCountFromJSDispatchTable(dispatch_handle);
+++  TNode<Uint16T> expected_parameter_count = DynamicJSParameterCount();
++ #else
++   auto dispatch_handle = InvalidDispatchHandleConstant();
++   TNode<Uint16T> expected_parameter_count = Uint16Constant(0);
+diff --git a/patches/v8/src-builtins-builtins-utils-gen.h.patch b/patches/v8/src-builtins-builtins-utils-gen.h.patch
+new file mode 100644
+index 00000000..4626cacd
+--- /dev/null
++++ b/patches/v8/src-builtins-builtins-utils-gen.h.patch
+@@ -0,0 +1,15 @@
++diff --git a/src/builtins/builtins-utils-gen.h b/src/builtins/builtins-utils-gen.h
++index 5e675fe2f508ca2850c1b7b59a27197732523f86..48ad9b8990ed73caa6d77d70273baeba5a303b9e 100644
++--- a/src/builtins/builtins-utils-gen.h
+++++ b/src/builtins/builtins-utils-gen.h
++@@ -52,9 +52,7 @@ class CodeAssemblerState;
++   void Builtins::Generate_##Name(compiler::CodeAssemblerState* state) {     \
++     Name##Assembler assembler(state);                                       \
++     state->SetInitialDebugInformation(#Name, __FILE__, __LINE__);           \
++-    if (Builtins::KindOf(Builtin::k##Name) == Builtins::TFJ) {              \
++-      assembler.PerformStackCheck(assembler.GetJSContextParameter());       \
++-    }                                                                       \
+++    assembler.EmitBuiltinProlog(Builtin::k##Name);                          \
++     assembler.Generate##Name##Impl();                                       \
++   }                                                                         \
++   void Name##Assembler::Generate##Name##Impl()
+diff --git a/patches/v8/src-builtins-js-to-wasm.tq.patch b/patches/v8/src-builtins-js-to-wasm.tq.patch
+new file mode 100644
+index 00000000..962d6891
+--- /dev/null
++++ b/patches/v8/src-builtins-js-to-wasm.tq.patch
+@@ -0,0 +1,45 @@
++diff --git a/src/builtins/js-to-wasm.tq b/src/builtins/js-to-wasm.tq
++index 8d72eccf7f4d1375bc49a1243e1bc4619b1882a1..b713833465d59fd8294b0b75bd9bb5b26a5d93fc 100644
++--- a/src/builtins/js-to-wasm.tq
+++++ b/src/builtins/js-to-wasm.tq
++@@ -833,34 +833,22 @@ macro JSToWasmWrapperHelper(
++ }
++ 
++ transitioning javascript builtin JSToWasmWrapper(
++-    js-implicit context: NativeContext, receiver: JSAny, target: JSFunction,
++-    dispatchHandle: DispatchHandle)(...arguments): JSAny {
++-  // This is a generic builtin that can be installed on functions with different
++-  // parameter counts, so we need to support that.
++-  SetSupportsDynamicParameterCount(target, dispatchHandle);
++-
+++    js-implicit context: NativeContext, receiver: JSAny, target: JSFunction)(
+++    ...arguments): JSAny {
++   return JSToWasmWrapperHelper(
++       context, receiver, target, arguments, Promise::kNoPromise);
++ }
++ 
++ transitioning javascript builtin WasmPromising(
++-    js-implicit context: NativeContext, receiver: JSAny, target: JSFunction,
++-    dispatchHandle: DispatchHandle)(...arguments): JSAny {
++-  // This is a generic builtin that can be installed on functions with different
++-  // parameter counts, so we need to support that.
++-  SetSupportsDynamicParameterCount(target, dispatchHandle);
++-
+++    js-implicit context: NativeContext, receiver: JSAny, target: JSFunction)(
+++    ...arguments): JSAny {
++   return JSToWasmWrapperHelper(
++       context, receiver, target, arguments, Promise::kPromise);
++ }
++ 
++ transitioning javascript builtin WasmStressSwitch(
++-    js-implicit context: NativeContext, receiver: JSAny, target: JSFunction,
++-    dispatchHandle: DispatchHandle)(...arguments): JSAny {
++-  // This is a generic builtin that can be installed on functions with different
++-  // parameter counts, so we need to support that.
++-  SetSupportsDynamicParameterCount(target, dispatchHandle);
++-
+++    js-implicit context: NativeContext, receiver: JSAny, target: JSFunction)(
+++    ...arguments): JSAny {
++   return JSToWasmWrapperHelper(
++       context, receiver, target, arguments, Promise::kStressSwitch);
++ }
+diff --git a/patches/v8/src-builtins-js-trampoline-assembler.cc.patch b/patches/v8/src-builtins-js-trampoline-assembler.cc.patch
+new file mode 100644
+index 00000000..24d8f247
+--- /dev/null
++++ b/patches/v8/src-builtins-js-trampoline-assembler.cc.patch
+@@ -0,0 +1,70 @@
++diff --git a/src/builtins/js-trampoline-assembler.cc b/src/builtins/js-trampoline-assembler.cc
++index 1b1fbc5e9ac664e26f051627ee5c1a93f36ac1ab..eec0c1ae8e29d46a747adfa47a043761442179e0 100644
++--- a/src/builtins/js-trampoline-assembler.cc
+++++ b/src/builtins/js-trampoline-assembler.cc
++@@ -38,17 +38,27 @@ void JSTrampolineAssembler::TailCallJSFunction(
++                  expected_parameter_count);
++ }
++ 
++-void JSTrampolineAssembler::CompileLazy(TNode<JSFunction> function,
++-                                        TNode<Context> context) {
+++TNode<Uint16T> JSTrampolineAssembler::LoadIncomingParameterCount() {
++ #ifdef V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE
+++  // TODO(crbug.com/465487205): Until incoming JSDispatchHandles are kept alive
+++  // via the stack, the parameter count must be loaded at the very start of the
+++  // builtin before any runtime call or stack check can trigger a GC and sweep
+++  // an unrooted dispatch table entry.
+++  DCHECK(IsAtStart());
++   auto dispatch_handle =
++       UncheckedParameter<JSDispatchHandleT>(Descriptor::kDispatchHandle);
++-  TNode<Uint16T> expected_parameter_count =
++-      LoadParameterCountFromJSDispatchTable(dispatch_handle);
+++  return LoadParameterCountFromJSDispatchTable(dispatch_handle);
++ #else
++   CHECK(!V8_ENABLE_SANDBOX_BOOL);
++-  TNode<Uint16T> expected_parameter_count = Uint16Constant(0);
+++  return Uint16Constant(0);
++ #endif
+++}
+++
+++TF_BUILTIN(CompileLazy, JSTrampolineAssembler) {
+++  TNode<Uint16T> expected_parameter_count = LoadIncomingParameterCount();
+++
+++  auto function = Parameter<JSFunction>(Descriptor::kTarget);
+++  auto context = Parameter<Context>(Descriptor::kContext);
++ 
++   // First lookup code, maybe we don't need to compile!
++   Label compile_function(this, Label::kDeferred);
++@@ -98,16 +108,10 @@ void JSTrampolineAssembler::CompileLazy(TNode<JSFunction> function,
++   TailCallJSFunction(function, expected_parameter_count);
++ }
++ 
++-TF_BUILTIN(CompileLazy, JSTrampolineAssembler) {
++-  auto function = Parameter<JSFunction>(Descriptor::kTarget);
++-  auto context = Parameter<Context>(Descriptor::kContext);
++-
++-  CompileLazy(function, context);
++-}
++-
++-
++ template <typename Function>
++ void JSTrampolineAssembler::TieringBuiltinImpl(const Function& Impl) {
+++  TNode<Uint16T> expected_parameter_count = LoadIncomingParameterCount();
+++
++   auto function = Parameter<JSFunction>(Descriptor::kTarget);
++   auto context = Parameter<Context>(Descriptor::kContext);
++   auto argc = UncheckedParameter<Int32T>(Descriptor::kActualArgumentsCount);
++@@ -116,13 +120,9 @@ void JSTrampolineAssembler::TieringBuiltinImpl(const Function& Impl) {
++ #ifdef V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE
++   auto dispatch_handle =
++       UncheckedParameter<JSDispatchHandleT>(Descriptor::kDispatchHandle);
++-  TNode<Uint16T> expected_parameter_count =
++-      LoadParameterCountFromJSDispatchTable(dispatch_handle);
++ #else
++-  CHECK(!V8_ENABLE_SANDBOX_BOOL);
++   auto dispatch_handle = LoadObjectField<JSDispatchHandleT>(
++       function, offsetof(JSFunction, dispatch_handle_));
++-  TNode<Uint16T> expected_parameter_count = Uint16Constant(0);
++ #endif
++ 
++   // Apply the actual tiering. This function must uninstall the tiering builtin.
+diff --git a/patches/v8/src-builtins-js-trampoline-assembler.h.patch b/patches/v8/src-builtins-js-trampoline-assembler.h.patch
+new file mode 100644
+index 00000000..192e02a6
+--- /dev/null
++++ b/patches/v8/src-builtins-js-trampoline-assembler.h.patch
+@@ -0,0 +1,14 @@
++diff --git a/src/builtins/js-trampoline-assembler.h b/src/builtins/js-trampoline-assembler.h
++index f0b342bb9863940559fbbf3aca47c004d91982ed..48b09f277d70f1fa85f4683da89a360440df36eb 100644
++--- a/src/builtins/js-trampoline-assembler.h
+++++ b/src/builtins/js-trampoline-assembler.h
++@@ -24,8 +24,7 @@ class JSTrampolineAssembler : public CodeStubAssembler {
++   template <typename Function>
++   void TieringBuiltinImpl(const Function& Impl);
++ 
++-
++-  void CompileLazy(TNode<JSFunction> function, TNode<Context> context);
+++  TNode<Uint16T> LoadIncomingParameterCount();
++ };
++ 
++ }  // namespace v8::internal
+diff --git a/patches/v8/src-builtins-wasm-interpreter-wrappers.tq.patch b/patches/v8/src-builtins-wasm-interpreter-wrappers.tq.patch
+new file mode 100644
+index 00000000..6c5088d9
+--- /dev/null
++++ b/patches/v8/src-builtins-wasm-interpreter-wrappers.tq.patch
+@@ -0,0 +1,18 @@
++diff --git a/src/builtins/wasm-interpreter-wrappers.tq b/src/builtins/wasm-interpreter-wrappers.tq
++index 5a1f213f6fafdb5699098ca7efb4339e9892b217..861b254bf662825feb9df4f563e7f7f574d58d54 100644
++--- a/src/builtins/wasm-interpreter-wrappers.tq
+++++ b/src/builtins/wasm-interpreter-wrappers.tq
++@@ -69,11 +69,8 @@ macro LocationAllocatorForWasmInterpreterReturns(stack: RawPtr):
++ 
++ 
++ transitioning javascript builtin JSToWasmInterpreterWrapper(
++-    js-implicit context: NativeContext, receiver: JSAny, target: JSFunction,
++-    dispatchHandle: DispatchHandle)(...arguments): JSAny {
++-  // This is a generic builtin that can be installed on functions with different
++-  // parameter counts, so we need to support that.
++-  SetSupportsDynamicParameterCount(target, dispatchHandle);
+++    js-implicit context: NativeContext, receiver: JSAny, target: JSFunction)(
+++    ...arguments): JSAny {
++   const functionData = target.shared_function_info.wasm_exported_function_data;
++ 
++   const internalFunction = functionData.internal;
+diff --git a/patches/v8/src-codegen-code-stub-assembler.cc.patch b/patches/v8/src-codegen-code-stub-assembler.cc.patch
+new file mode 100644
+index 00000000..3534093f
+--- /dev/null
++++ b/patches/v8/src-codegen-code-stub-assembler.cc.patch
+@@ -0,0 +1,70 @@
++diff --git a/src/codegen/code-stub-assembler.cc b/src/codegen/code-stub-assembler.cc
++index 82d902772d0371c25d8c5bf3b293b9ea69798d1f..6e81c58c52abf9ab9a3cf51ccd0eaa315f2e440e 100644
++--- a/src/codegen/code-stub-assembler.cc
+++++ b/src/codegen/code-stub-assembler.cc
++@@ -2240,6 +2240,25 @@ TNode<Uint16T> CodeStubAssembler::LoadParameterCountFromJSDispatchTable(
++   return Load<Uint16T>(table, offset);
++ }
++ 
+++TNode<Uint16T> CodeStubAssembler::GetParameterCountFromDispatchHandle() {
+++  // TODO(crbug.com/465487205): Until incoming JSDispatchHandles are kept alive
+++  // via the stack, the parameter count must be loaded at the very start of the
+++  // builtin before any runtime call or stack check can trigger a GC and sweep
+++  // an unrooted dispatch table entry.
+++  DCHECK(IsAtStart());
+++  DCHECK(IsJSFunctionCall());
+++  TNode<JSDispatchHandleT> dispatch_handle;
+++#ifdef V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE
+++  dispatch_handle = GetJSDispatchHandleParameter();
+++#else
+++  TNode<JSFunction> function =
+++      UncheckedParameter<JSFunction>(kTargetParameterIndex);
+++  dispatch_handle = LoadObjectField<JSDispatchHandleT>(
+++      function, offsetof(JSFunction, dispatch_handle_));
+++#endif
+++  return LoadParameterCountFromJSDispatchTable(dispatch_handle);
+++}
+++
++ void CodeStubAssembler::TailCallJSCode(
++     TNode<Code> code, TNode<Context> context, TNode<JSFunction> function,
++     TNode<Object> new_target, TNode<Int32T> arg_count,
++@@ -2337,13 +2356,6 @@ TNode<TrustedObject> CodeStubAssembler::ResolveIndirectPointerHandle(
++ 
++ #endif  // V8_ENABLE_SANDBOX
++ 
++-void CodeStubAssembler::SetSupportsDynamicParameterCount(
++-    TNode<JSFunction> callee, TNode<JSDispatchHandleT> dispatch_handle) {
++-  TNode<Uint16T> dynamic_parameter_count =
++-      LoadParameterCountFromJSDispatchTable(dispatch_handle);
++-  SetDynamicJSParameterCount(dynamic_parameter_count);
++-}
++-
++ TNode<JSDispatchHandleT> CodeStubAssembler::InvalidDispatchHandleConstant() {
++   return UncheckedCast<JSDispatchHandleT>(
++       Uint32Constant(kInvalidDispatchHandle.value()));
++@@ -20761,6 +20773,25 @@ IntegerLiteral CodeStubAssembler::ConstexprIntegerLiteralBitwiseOr(
++   return lhs | rhs;
++ }
++ 
+++void CodeStubAssembler::EmitBuiltinProlog(Builtin builtin_id) {
+++  if (Builtins::KindOf(builtin_id) == Builtins::TFJ) {
+++    if (Builtins::IsJSTrampoline(builtin_id)) {
+++      // JS trampolines (such as generic Wasm wrappers and DebugBreakTrampoline)
+++      // can be installed on functions with different parameter counts and load
+++      // the expected parameter count from the JSDispatchTable entry (used to
+++      // clean up the caller's argument slots in PopAndReturn for Wasm wrappers,
+++      // or re-verified in TailCallJSCode for DebugBreakTrampoline).
+++      // TODO(crbug.com/465487205): Until incoming JSDispatchHandles are kept
+++      // alive via the stack, this load must happen before the stack check
+++      // below, as Runtime::kStackGuard can trigger a GC that sweeps an unrooted
+++      // dispatch table entry if the JSFunction's dispatch_handle field in the
+++      // heap was concurrently overwritten.
+++      SetDynamicJSParameterCount(GetParameterCountFromDispatchHandle());
+++    }
+++    PerformStackCheck(GetJSContextParameter());
+++  }
+++}
+++
++ void CodeStubAssembler::PerformStackCheck(TNode<Context> context) {
++   Label ok(this), stack_check_interrupt(this, Label::kDeferred);
++ 
+diff --git a/patches/v8/src-codegen-code-stub-assembler.h.patch b/patches/v8/src-codegen-code-stub-assembler.h.patch
+new file mode 100644
+index 00000000..8d7a6d98
+--- /dev/null
++++ b/patches/v8/src-codegen-code-stub-assembler.h.patch
+@@ -0,0 +1,47 @@
++diff --git a/src/codegen/code-stub-assembler.h b/src/codegen/code-stub-assembler.h
++index 16d19a835072770788f46ac0654795c86fa159e8..3c86206116af6c00ef0ea53234275fedb432165f 100644
++--- a/src/codegen/code-stub-assembler.h
+++++ b/src/codegen/code-stub-assembler.h
++@@ -4508,6 +4508,8 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
++   // Load the parameter count of a JSDispatchTable entry.
++   TNode<Uint16T> LoadParameterCountFromJSDispatchTable(
++       TNode<JSDispatchHandleT> dispatch_handle);
+++  // Load the parameter count of the incoming JS call's dispatch handle.
+++  TNode<Uint16T> GetParameterCountFromDispatchHandle();
++ 
++   TNode<UintPtrT> ComputeJSDispatchTableEntryOffset(
++       TNode<JSDispatchHandleT> handle);
++@@ -4538,25 +4540,6 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
++                       TNode<JSDispatchHandleT> dispatch_handle,
++                       TNode<Uint16T> expected_parameter_count);
++ 
++-  // Indicate that this code must support a dynamic parameter count.
++-  //
++-  // This is used for builtins that must work on functions with different
++-  // parameter counts. In that case, the true JS parameter count is only known
++-  // at runtime and must be obtained in order to compute the total number of
++-  // arguments (which may include padding arguments). The parameter count is
++-  // subsequently available through the corresponding CodeAssembler accessors.
++-  // The target function object and the dispatch handle need to be passed in
++-  // and are used to obtain the actual parameter count of the called function.
++-  //
++-  // This should generally be invoked directly at the start of the function.
++-  //
++-  // TODO(saelo): it would be a bit nicer if this would happen automatically in
++-  // the function prologue for functions marked as requiring this (e.g. via the
++-  // call descriptor). It's not clear if that's worth the effort though for the
++-  // handful of builtins that need this.
++-  void SetSupportsDynamicParameterCount(
++-      TNode<JSFunction> callee, TNode<JSDispatchHandleT> dispatch_handle);
++-
++   // Figure out the SFI's code object using its data field.
++   // If |data_type_out| is provided, the instance type of the function data will
++   // be stored in it. In case the code object is a builtin (data is a Smi),
++@@ -4791,6 +4774,7 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
++ #endif
++   }
++ 
+++  void EmitBuiltinProlog(Builtin builtin_id);
++   void PerformStackCheck(TNode<Context> context);
++ 
++   void SetPropertyLength(TNode<Context> context, TNode<JSAny> array,
+diff --git a/patches/v8/src-codegen-turboshaft-builtins-assembler-inl.h.patch b/patches/v8/src-codegen-turboshaft-builtins-assembler-inl.h.patch
+new file mode 100644
+index 00000000..1fa7613f
+--- /dev/null
++++ b/patches/v8/src-codegen-turboshaft-builtins-assembler-inl.h.patch
+@@ -0,0 +1,15 @@
++diff --git a/src/codegen/turboshaft-builtins-assembler-inl.h b/src/codegen/turboshaft-builtins-assembler-inl.h
++index 2c0c2da77442e958a7abd7263fb6491e9fab487a..5d9c7d05e6115d6c4a50ddf0316fa71fb813a315 100644
++--- a/src/codegen/turboshaft-builtins-assembler-inl.h
+++++ b/src/codegen/turboshaft-builtins-assembler-inl.h
++@@ -542,6 +542,10 @@ class BuiltinsReducer : public Next {
++     // TODO(nicohartmann): CSA tracks some debug information here.
++     // Emit stack check.
++     if (Builtins::KindOf(builtin_id) == Builtins::TFJ_TSA) {
+++      // JS trampolines require loading the dynamic JS parameter count before
+++      // the stack check (see CodeStubAssembler::EmitBuiltinProlog) and are not
+++      // currently supported in TSA.
+++      DCHECK(!Builtins::IsJSTrampoline(builtin_id));
++       __ PerformStackCheck(__ JSContextParameter());
++     }
++   }
+diff --git a/patches/v8/src-compiler-code-assembler.cc.patch b/patches/v8/src-compiler-code-assembler.cc.patch
+new file mode 100644
+index 00000000..045d26e7
+--- /dev/null
++++ b/patches/v8/src-compiler-code-assembler.cc.patch
+@@ -0,0 +1,47 @@
++diff --git a/src/compiler/code-assembler.cc b/src/compiler/code-assembler.cc
++index db36c41b3b5aebd155713f3daa446b4ff515899e..c3e589861b4b52ffd87655038d9c17153711fac0 100644
++--- a/src/compiler/code-assembler.cc
+++++ b/src/compiler/code-assembler.cc
++@@ -521,6 +521,21 @@ TNode<Context> CodeAssembler::GetJSContextParameter() {
++       static_cast<int>(call_descriptor->JSParameterCount())));
++ }
++ 
+++#ifdef V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE
+++TNode<JSDispatchHandleT> CodeAssembler::GetJSDispatchHandleParameter() {
+++  auto call_descriptor = raw_assembler()->call_descriptor();
+++  DCHECK(call_descriptor->IsJSFunctionCall());
+++  // In JS call descriptors, implicit register parameters (new.target, argc,
+++  // dispatch_handle, context) are indexed immediately after the formal JS stack
+++  // parameters (0 .. JSParameterCount() - 1).
+++  return UncheckedParameter<JSDispatchHandleT>(
+++      Linkage::GetJSCallDispatchHandleParamIndex(
+++          static_cast<int>(call_descriptor->JSParameterCount())));
+++}
+++#endif
+++
+++bool CodeAssembler::IsAtStart() const { return raw_assembler()->IsAtStart(); }
+++
++ bool CodeAssembler::HasDynamicJSParameterCount() {
++   return raw_assembler()->dynamic_js_parameter_count() != nullptr;
++ }
++@@ -532,14 +547,12 @@ TNode<Uint16T> CodeAssembler::DynamicJSParameterCount() {
++ 
++ void CodeAssembler::SetDynamicJSParameterCount(TNode<Uint16T> parameter_count) {
++   DCHECK(!HasDynamicJSParameterCount());
++-  // For code to support a dynamic parameter count, it's static parameter count
++-  // must currently be zero, i.e. varargs. Otherwise we'd also need to ensure
++-  // that the dynamic parameter count is not smaller than the static one.
++-  //
++-  // TODO(saelo): it would probably be a bit nicer if we could assert here that
++-  // IsJSFunctionCall() is true and then use the JSParameterCount() of the
++-  // descriptor instead, but that doesn't work because not all users of this
++-  // feature are TFJ builtins (some are TFC builtins).
+++  DCHECK(IsJSFunctionCall());
+++  // For code to support a dynamic parameter count, its static parameter count
+++  // must currently be zero (kDontAdaptArgumentsSentinel), i.e. varargs.
+++  // Otherwise we'd also need to ensure that the dynamic parameter count is not
+++  // smaller than the static one.
+++  DCHECK_EQ(raw_assembler()->call_descriptor()->JSParameterCount(), 0);
++   DCHECK_EQ(raw_assembler()->call_descriptor()->ParameterSlotCount(), 0);
++   raw_assembler()->set_dynamic_js_parameter_count(parameter_count);
++ }
+diff --git a/patches/v8/src-compiler-code-assembler.h.patch b/patches/v8/src-compiler-code-assembler.h.patch
+new file mode 100644
+index 00000000..ba9096c5
+--- /dev/null
++++ b/patches/v8/src-compiler-code-assembler.h.patch
+@@ -0,0 +1,36 @@
++diff --git a/src/compiler/code-assembler.h b/src/compiler/code-assembler.h
++index 06a61b2fa0ce0e7d2970f8b9f348735982b742f0..a57f7be12b4909eef19e124936c8a871746eaaf5 100644
++--- a/src/compiler/code-assembler.h
+++++ b/src/compiler/code-assembler.h
++@@ -726,6 +726,8 @@ class V8_EXPORT_PRIVATE CodeAssembler {
++     return UncheckedCast<UintPtrT>(x);
++   }
++ 
+++  bool IsAtStart() const;
+++
++   // Support for code with a "dynamic" parameter count.
++   //
++   // Code assembled by our code assembler always has a "static" parameter count
++@@ -735,9 +737,9 @@ class V8_EXPORT_PRIVATE CodeAssembler {
++   // objects with different parameter counts. In that case, the actual
++   // parameter count is only known at runtime. Examples of such builtins
++   // include the CompileLazy builtin and the InterpreterEntryTrampoline, or the
++-  // generic JSToWasm and JSToJS wrappers. These builtins then may have to
++-  // obtain the "dynamic" parameter count, for example to correctly remove all
++-  // function arguments (including padding arguments) from the stack.
+++  // generic JSToWasm wrappers. These builtins then may have to obtain the
+++  // "dynamic" parameter count, for example to correctly remove all function
+++  // arguments (including padding arguments) from the stack.
++   bool HasDynamicJSParameterCount();
++   TNode<Uint16T> DynamicJSParameterCount();
++   void SetDynamicJSParameterCount(TNode<Uint16T> parameter_count);
++@@ -774,6 +776,9 @@ class V8_EXPORT_PRIVATE CodeAssembler {
++   Node* UntypedParameter(int value);
++ 
++   TNode<Context> GetJSContextParameter();
+++#ifdef V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE
+++  TNode<JSDispatchHandleT> GetJSDispatchHandleParameter();
+++#endif
++   void Return(TNode<Object> value);
++   void Return(TNode<Object> value1, TNode<Object> value2);
++   void Return(TNode<Object> value1, TNode<Object> value2, TNode<Object> value3);
+diff --git a/patches/v8/src-compiler-raw-machine-assembler.cc.patch b/patches/v8/src-compiler-raw-machine-assembler.cc.patch
+new file mode 100644
+index 00000000..5cece0cb
+--- /dev/null
++++ b/patches/v8/src-compiler-raw-machine-assembler.cc.patch
+@@ -0,0 +1,23 @@
++diff --git a/src/compiler/raw-machine-assembler.cc b/src/compiler/raw-machine-assembler.cc
++index b93a2fdea0ae86887ab13e2359a4f4ee6379ea1a..42c370ad571869a07d0ac3191686b877cd300915 100644
++--- a/src/compiler/raw-machine-assembler.cc
+++++ b/src/compiler/raw-machine-assembler.cc
++@@ -841,6 +841,18 @@ void RawMachineAssembler::SetInitialDebugInformation(
++ 
++ bool RawMachineAssembler::InsideBlock() { return current_block_ != nullptr; }
++ 
+++bool RawMachineAssembler::IsAtStart() const {
+++  if (current_block_ != schedule_->start()) return false;
+++  for (Node* node : *current_block_) {
+++    if (node->opcode() == IrOpcode::kCall ||
+++        node->opcode() == IrOpcode::kAllocate ||
+++        node->opcode() == IrOpcode::kAllocateRaw) {
+++      return false;
+++    }
+++  }
+++  return true;
+++}
+++
++ BasicBlock* RawMachineAssembler::CurrentBlock() {
++   DCHECK(current_block_);
++   return current_block_;
+diff --git a/patches/v8/src-compiler-raw-machine-assembler.h.patch b/patches/v8/src-compiler-raw-machine-assembler.h.patch
+new file mode 100644
+index 00000000..7efc56b3
+--- /dev/null
++++ b/patches/v8/src-compiler-raw-machine-assembler.h.patch
+@@ -0,0 +1,31 @@
++diff --git a/src/compiler/raw-machine-assembler.h b/src/compiler/raw-machine-assembler.h
++index a8902144a7062b26be07686c4ea53095daa91cac..b59b5c21c900a7e9a2e5263fb36f4148851e12da 100644
++--- a/src/compiler/raw-machine-assembler.h
+++++ b/src/compiler/raw-machine-assembler.h
++@@ -1131,6 +1131,7 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
++   void PrintCurrentBlock(std::ostream& os);
++ #endif  // DEBUG
++   bool InsideBlock();
+++  bool IsAtStart() const;
++ 
++   // Add success / exception successor blocks and ends the current block ending
++   // in a potentially throwing call node.
++@@ -1186,15 +1187,11 @@ class V8_EXPORT_PRIVATE RawMachineAssembler {
++   // If we're generating the code for one of these special builtins, this
++   // function will return a node containing the actual JS parameter count.
++   // Otherwise it will be nullptr.
++-  //
++-  // TODO(saelo): it would be a bit nicer if we could automatically determine
++-  // that the dynamic parameter count is required (for example from the call
++-  // descriptor) and then directly fetch it in the prologue and use it in the
++-  // epilogue without the higher-level assemblers having to get involved. It's
++-  // not clear if it's worth the effort though for the handful of builtins that
++-  // work this way though.
++   Node* dynamic_js_parameter_count() { return dynamic_js_parameter_count_; }
++   void set_dynamic_js_parameter_count(Node* parameter_count) {
+++    // Must be set at the start of the builtin before any call/GC can sweep an
+++    // unrooted dispatch table entry.
+++    DCHECK(IsAtStart());
++     dynamic_js_parameter_count_ = parameter_count;
++   }
++ 
+diff --git a/patches/v8/src-sandbox-js-dispatch-table-inl.h.patch b/patches/v8/src-sandbox-js-dispatch-table-inl.h.patch
+new file mode 100644
+index 00000000..3af34da2
+--- /dev/null
++++ b/patches/v8/src-sandbox-js-dispatch-table-inl.h.patch
+@@ -0,0 +1,19 @@
++diff --git a/src/sandbox/js-dispatch-table-inl.h b/src/sandbox/js-dispatch-table-inl.h
++index 5566fc682a0d87da388f90e94755f20157a53933..9f85686a8fbea3ebb19842be54d67860753b3fb1 100644
++--- a/src/sandbox/js-dispatch-table-inl.h
+++++ b/src/sandbox/js-dispatch-table-inl.h
++@@ -419,10 +419,10 @@ bool JSDispatchTable::IsCompatibleCode(Tagged<Code> code,
++ 
++   // Signature mismatch. This is mostly not safe, except for certain varargs
++   // builtins which are able to correctly handle such a mismatch. Examples
++-  // include builtins like the InterpreterEntryTrampoline or the JSToWasm and
++-  // JSToJS wrappers which determine their actual parameter count at runtime
++-  // (see CodeStubAssembler::SetSupportsDynamicParameterCount()), or internal
++-  // builtins that end up tailcalling into other code such as CompileLazy.
+++  // include builtins like the InterpreterEntryTrampoline or the JSToWasm
+++  // wrappers which determine their actual parameter count at runtime (see
+++  // CodeStubAssembler::EmitBuiltinProlog()), or internal builtins that end up
+++  // tailcalling into other code such as CompileLazy.
++   //
++   // Currently, we also allow this for testing code (from our test suites).
++   // TODO(saelo): maybe we should also forbid this just to be sure.
+diff --git a/patches/v8/src-torque-constants.h.patch b/patches/v8/src-torque-constants.h.patch
+new file mode 100644
+index 00000000..a6d1bb59
+--- /dev/null
++++ b/patches/v8/src-torque-constants.h.patch
+@@ -0,0 +1,12 @@
++diff --git a/src/torque/constants.h b/src/torque/constants.h
++index b057b9f21111fa1255e89aa62b82fd1080d154be..42784765e952cff78958fcab5e4aa75051fef048 100644
++--- a/src/torque/constants.h
+++++ b/src/torque/constants.h
++@@ -44,7 +44,6 @@ static const char* const EXTERNALPTR_TYPE_STRING = "ExternalPointer";
++ static const char* const CPPHEAPPTR_TYPE_STRING = "CppHeapPointer";
++ static const char* const TRUSTEDPTR_TYPE_STRING = "TrustedPointer";
++ static const char* const PROTECTEDPTR_TYPE_STRING = "ProtectedPointer";
++-static const char* const DISPATCH_HANDLE_TYPE_STRING = "DispatchHandle";
++ static const char* const CONST_STRING_TYPE_STRING = "constexpr string";
++ static const char* const STRING_TYPE_STRING = "String";
++ static const char* const NUMBER_TYPE_STRING = "Number";
+diff --git a/patches/v8/src-torque-implementation-visitor.cc.patch b/patches/v8/src-torque-implementation-visitor.cc.patch
+new file mode 100644
+index 00000000..984f8ef6
+--- /dev/null
++++ b/patches/v8/src-torque-implementation-visitor.cc.patch
+@@ -0,0 +1,27 @@
++diff --git a/src/torque/implementation-visitor.cc b/src/torque/implementation-visitor.cc
++index eec2a04006dbe6f47084910d3507b1a1cce2da5d..be8120ad99cc1274f717a3b482375346ce99e0ed 100644
++--- a/src/torque/implementation-visitor.cc
+++++ b/src/torque/implementation-visitor.cc
++@@ -660,22 +660,6 @@ void ImplementationVisitor::Visit(Builtin* builtin) {
++                      << "Descriptor::kJSTarget);\n";
++         csa_ccfile() << "  USE(" << generated_name << ");\n";
++         expected_types = {TypeOracle::GetJSFunctionType()};
++-      } else if (param_name == "dispatchHandle") {
++-        if (V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE_BOOL) {
++-          csa_ccfile() << "  TNode<JSDispatchHandleT> " << generated_name
++-                       << " = "
++-                          "UncheckedParameter<JSDispatchHandleT>(Descriptor::"
++-                          "kJSDispatchHandle);\n";
++-        } else {
++-          csa_ccfile() << "  TNode<JSDispatchHandleT> " << generated_name
++-                       << " = "
++-                          "ReinterpretCast<JSDispatchHandleT>("
++-                          "LoadJSFunctionDispatchHandle("
++-                          "UncheckedParameter<JSFunction>("
++-                       << "Descriptor::kJSTarget)));\n";
++-        }
++-        csa_ccfile() << "  USE(" << generated_name << ");\n";
++-        expected_types = {TypeOracle::GetDispatchHandleType()};
++       } else {
++         Error(
++             "Unexpected implicit parameter \"", param_name,
+diff --git a/patches/v8/src-torque-type-oracle.h.patch b/patches/v8/src-torque-type-oracle.h.patch
+new file mode 100644
+index 00000000..f82d3a60
+--- /dev/null
++++ b/patches/v8/src-torque-type-oracle.h.patch
+@@ -0,0 +1,15 @@
++diff --git a/src/torque/type-oracle.h b/src/torque/type-oracle.h
++index b96f347e1bb1c8289737d129f975468a08a971f6..18eddedb16b5168e048dc3bdecbfdd43e957a938 100644
++--- a/src/torque/type-oracle.h
+++++ b/src/torque/type-oracle.h
++@@ -213,10 +213,6 @@ class TypeOracle : public base::ContextualClass<TypeOracle> {
++     return Get().GetBuiltinType(PROTECTEDPTR_TYPE_STRING);
++   }
++ 
++-  static const Type* GetDispatchHandleType() {
++-    return Get().GetBuiltinType(DISPATCH_HANDLE_TYPE_STRING);
++-  }
++-
++   static const Type* GetMapType() {
++     return Get().GetBuiltinType(MAP_TYPE_STRING);
++   }
+diff --git a/patches/v8/test-mjsunit-mjsunit.status.patch b/patches/v8/test-mjsunit-mjsunit.status.patch
+index 9806ffb9..1ae1f98d 100644
+--- a/patches/v8/test-mjsunit-mjsunit.status.patch
++++ b/patches/v8/test-mjsunit-mjsunit.status.patch
+@@ -1,5 +1,5 @@
+ diff --git a/test/mjsunit/mjsunit.status b/test/mjsunit/mjsunit.status
+-index 5974a6eb18b9b2df9f61c837b54ba2484f79c29e..bdd275010691e5cd57d279839a1cad807254c6a7 100644
++index 5974a6eb18b9b2df9f61c837b54ba2484f79c29e..d7b3e04deaa2d9a55cf0f4fe2ed273bc07903d07 100644
+ --- a/test/mjsunit/mjsunit.status
+ +++ b/test/mjsunit/mjsunit.status
+ @@ -215,6 +215,7 @@
+@@ -10,3 +10,11 @@ index 5974a6eb18b9b2df9f61c837b54ba2484f79c29e..bdd275010691e5cd57d279839a1cad80
+    'sealed-array-reduce': [PASS, SLOW],
+    'string-replace-gc': [PASS, SLOW],
+    'tools/processor': [PASS, SLOW],
++@@ -822,6 +823,7 @@
++ 
++   'sandbox/regress/regress-334120897': [SKIP],
++   'sandbox/regress/regress-349502157': [SKIP],
+++  'sandbox/regress/regress-581560002': [SKIP],
++   'sandbox/regress-537948358': [SKIP],
++   'sandbox/wasm-inlining-sigcheck': [SKIP],
++   'sandbox/wasm-signature-verification': [SKIP],
+diff --git a/patches/v8/test-mjsunit-sandbox-regress-regress-581560002.js.patch b/patches/v8/test-mjsunit-sandbox-regress-regress-581560002.js.patch
+new file mode 100644
+index 00000000..d6795997
+--- /dev/null
++++ b/patches/v8/test-mjsunit-sandbox-regress-regress-581560002.js.patch
+@@ -0,0 +1,76 @@
++diff --git a/test/mjsunit/sandbox/regress/regress-581560002.js b/test/mjsunit/sandbox/regress/regress-581560002.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..5ab4a47b252a30100f05b8261b8e7dc8204ef071
++--- /dev/null
+++++ b/test/mjsunit/sandbox/regress/regress-581560002.js
++@@ -0,0 +1,70 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++// Flags: --sandbox-testing --shared-strings --allow-natives-syntax
+++
+++d8.file.execute('test/mjsunit/wasm/wasm-module-builder.js');
+++
+++const kArity = 1000;
+++const kIterations = 200;
+++const builder = new WasmModuleBuilder();
+++const sig = makeSig(new Array(kArity).fill(kWasmI32), [kWasmI32]);
+++builder.addFunction('f', sig).addBody([kExprI32Const, 7]).exportFunc();
+++builder.addFunction('g', sig).addBody([kExprI32Const, 7]).exportFunc();
+++const wasmModule = builder.toModule();
+++
+++const fnB = new WebAssembly.Instance(wasmModule).exports.g;
+++const exportsList = Array.from(
+++    {length: kIterations}, () => new WebAssembly.Instance(wasmModule).exports.f);
+++
+++const mem = new Uint32Array(new Sandbox.MemoryView(0, 0x100000000));
+++const kDispatchOffset = Sandbox.getFieldOffset(
+++    Sandbox.getInstanceTypeIdFor('JS_FUNCTION'), 'dispatch_handle');
+++const handleB = mem[(Sandbox.getAddressOf(fnB) + kDispatchOffset) >>> 2];
+++
+++const shared = new SharedArrayBuffer(32);
+++const control = new Int32Array(shared);
+++control[3] = handleB;
+++control[7] = 0;
+++
+++const worker = new Worker(function() {
+++  onmessage = function(event) {
+++    const control = new Int32Array(event.data);
+++    const mem = new Uint32Array(new Sandbox.MemoryView(0, 0x100000000));
+++    Atomics.store(control, 5, 1);
+++    Atomics.notify(control, 5);
+++    while (Atomics.load(control, 0) !== 2) {
+++      if (Atomics.load(control, 0) !== 1) continue;
+++      const idx = Atomics.load(control, 1) >>> 0;
+++      const delay = Atomics.load(control, 6);
+++      for (let s = 0; s < delay; ++s) Atomics.load(control, 0);
+++      if (Atomics.load(control, 0) === 1) {
+++        mem[idx] = Atomics.load(control, 3);
+++        %SharedGC();
+++        Atomics.store(control, 0, 0);
+++      }
+++    }
+++  };
+++}, {type: 'function'});
+++
+++worker.postMessage(shared);
+++Atomics.wait(control, 5, 0);
+++
+++const targets = [fnB];
+++for (let i = 1; i < 32; ++i) targets.push(Function('return ' + i));
+++
+++for (let i = 0; i < kIterations; ++i) {
+++  const fnA = exportsList[i];
+++  const idx = (Sandbox.getAddressOf(fnA) + kDispatchOffset) >>> 2;
+++  targets[0] = fnA;
+++  Atomics.store(control, 1, idx);
+++  Atomics.store(control, 6, i & 15);
+++  Atomics.store(control, 0, 1);
+++  const res = targets[control[7] & 31]();
+++  while (Atomics.load(control, 0) === 1) {}
+++  assertEquals(7, res);
+++}
+++
+++Atomics.store(control, 0, 2);
+++worker.terminate();
+-- 
+2.43.0
+

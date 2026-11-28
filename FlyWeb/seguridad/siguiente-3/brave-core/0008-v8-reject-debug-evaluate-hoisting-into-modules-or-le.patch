@@ -1,0 +1,497 @@
+From 2462ce19875419aedafa02f8452565282aeb8477 Mon Sep 17 00:00:00 2001
+From: SEGURIDAD-PORTES-33 <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 09:44:05 +0000
+Subject: [PATCH 8/8] v8: reject debug-evaluate hoisting into modules or
+ lexical bindings (d76136bcef, crbug 589433702)
+
+Port of the M159 merge on V8 15.9 (15.9.128.39), cherry-pick of main
+eb88dd314f. Applied as is to 15.6.75.66.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01MwmK2kdhDkMC93UBtLuPkF
+---
+ patches/v8/FLYWEB-SECURITY.md                 |  19 ++
+ .../v8/src-runtime-runtime-scopes.cc.patch    |  91 ++++++-
+ ...all-frame-redeclaration-expected.txt.patch |  73 +++++
+ ...luate-on-call-frame-redeclaration.js.patch | 251 ++++++++++++++++++
+ 4 files changed, 431 insertions(+), 3 deletions(-)
+ create mode 100644 patches/v8/test-inspector-debugger-evaluate-on-call-frame-redeclaration-expected.txt.patch
+ create mode 100644 patches/v8/test-inspector-debugger-evaluate-on-call-frame-redeclaration.js.patch
+
+diff --git a/patches/v8/FLYWEB-SECURITY.md b/patches/v8/FLYWEB-SECURITY.md
+index 7e4eb624..5e34eceb 100644
+--- a/patches/v8/FLYWEB-SECURITY.md
++++ b/patches/v8/FLYWEB-SECURITY.md
+@@ -1,3 +1,22 @@
++# FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix d76136bcef (crbug 589433702), ported from the M159 merge
++
++SEGURIDAD-PORTES-33, 25-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0008`). **Not merged to 15.6
++upstream yet**: ported from the M159 merge d76136bcef (V8 15.9.128.39, bugs 590348412 and 589433702; cherry-pick of
++main eb88dd314f). Applied as is to 15.6.75.66 (`runtime-scopes.cc` already had a FlyWeb patch; no conflict). Severity
++not published.
++
++- In `DebugEvaluate::Local` (DevTools "evaluate on call frame"), a `var`/`function` declared by the snippet was hoisted
++  past the synthetic `DebugEvaluateContext` without the parser's conflict check. `DeclareEvalHelper` could then write a
++  module cell index into a `ModuleContext` (or cast a `SourceTextModule` to `JSObject`), overwrite `const`/`let`
++  slots or wrap TDZ slots: memory corruption.
++- Now any `ModuleContext` is rejected up front with `EvalError` (`kVarNotAllowedInEvalScope`), and lexical, read-only
++  or non-simple-parameter `arguments` bindings throw a `SyntaxError` redeclaration error. New `DCHECK`s only.
++- Reachable only through the debugger (DevTools open, or an extension with the `debugger` permission); applies to Mac.
++
++**Cache epoch:** covered by the single 40 -> 41 bump of `siguiente-3` (`brave-core/0001`); no bytecode change.
++
++To check (D8-LINUX): inspector test `debugger/evaluate-on-call-frame-redeclaration` and `inspector/debugger/*`.
++
+ # FlyWeb: release after 3.2.2 (softmac `seguridad/siguiente-3`), V8 fix 474a6307ce (crbug 576333024), M156 reland
+ 
+ SEGURIDAD-PORTES-33, 25-11-2026 (softmac `FlyWeb/seguridad/siguiente-3/brave-core/0007`). V8 15.6 474a6307ce
+diff --git a/patches/v8/src-runtime-runtime-scopes.cc.patch b/patches/v8/src-runtime-runtime-scopes.cc.patch
+index 97ae49a6..2c4931b4 100644
+--- a/patches/v8/src-runtime-runtime-scopes.cc.patch
++++ b/patches/v8/src-runtime-runtime-scopes.cc.patch
+@@ -1,10 +1,82 @@
+ diff --git a/src/runtime/runtime-scopes.cc b/src/runtime/runtime-scopes.cc
+-index e3da91b80779270e86705756da411bee3778305a..a65096e9b2cbd173343f8370a3b48e6e1eff5486 100644
++index e3da91b80779270e86705756da411bee3778305a..9b79708761a14dd6242494064ea3579a568dd8dc 100644
+ --- a/src/runtime/runtime-scopes.cc
+ +++ b/src/runtime/runtime-scopes.cc
+-@@ -429,6 +429,14 @@ Tagged<Object> DeclareEvalHelper(Isolate* isolate, Handle<String> name,
++@@ -364,6 +364,17 @@ RUNTIME_FUNCTION(Runtime_HandleExceptionsInDisposeDisposableStack) {
++ 
++ namespace {
++ 
+++#ifdef DEBUG
+++bool HasDebugEvaluateContextInChain(Tagged<Context> current,
+++                                    Tagged<Context> limit) {
+++  while (current != limit) {
+++    if (current->IsDebugEvaluateContext()) return true;
+++    current = current->previous();
+++  }
+++  return false;
+++}
+++#endif  // DEBUG
+++
++ Tagged<Object> DeclareEvalHelper(Isolate* isolate, Handle<String> name,
++                                  Handle<Object> value) {
++   // Declarations are always made in a function, native, eval, or script
++@@ -372,18 +383,21 @@ Tagged<Object> DeclareEvalHelper(Isolate* isolate, Handle<String> name,
++   // context and not the declaration context.
++   Handle<Context> context(isolate->context()->declaration_context(), isolate);
++ 
++-  // For debug-evaluate we always use sloppy eval, in which case context could
++-  // also be a module context. As module contexts reuse the extension slot
++-  // we need to check for this.
++-  const bool is_debug_evaluate_in_module =
++-      isolate->context()->IsDebugEvaluateContext() &&
++-      context->IsModuleContext();
+++  // Regular JS inside a module is always strict, so direct sloppy eval can
+++  // only reach a ModuleContext via debug-evaluate. Module contexts cannot be
+++  // extended (their extension slot holds the SourceTextModule), so disallow
+++  // hoisting var/function declarations into them altogether.
+++  if (context->IsModuleContext()) {
+++    DCHECK(HasDebugEvaluateContextInChain(isolate->context(), *context));
+++    THROW_NEW_ERROR_RETURN_FAILURE(
+++        isolate,
+++        NewEvalError(MessageTemplate::kVarNotAllowedInEvalScope, name));
+++  }
++ 
++   DCHECK(context->IsFunctionContext() || IsNativeContext(*context) ||
++          context->IsScriptContext() || context->IsEvalContext() ||
++          (context->IsBlockContext() &&
++-          context->scope_info()->is_declaration_scope()) ||
++-         is_debug_evaluate_in_module);
+++          context->scope_info()->is_declaration_scope()));
++ 
++   bool is_var = IsUndefined(*value);
++   DCHECK_IMPLIES(!is_var, IsJSFunction(*value));
++@@ -421,24 +435,48 @@ Tagged<Object> DeclareEvalHelper(Isolate* isolate, Handle<String> name,
++   }
++ 
++   if (attributes != ABSENT) {
+++    // For regular sloppy eval, conflicts with lexical bindings (and with the
+++    // implicit `arguments` binding in a non-simple parameter scope) are caught
+++    // at parse time by DeclarationScope::CheckConflictingVarDeclarations.
+++    // During debug-evaluate, deserializing a DebugEvaluateContext creates a
+++    // DeclarationScope that stops that check before reaching enclosing
+++    // contexts, so we can encounter lexical/read-only bindings here.
+++    if (IsLexicalVariableMode(mode) || (attributes & READ_ONLY) != 0 ||
+++        (index != Context::kNotFound && context->IsFunctionContext() &&
+++         !context->scope_info()->HasSimpleParameters())) {
+++      DCHECK(HasDebugEvaluateContextInChain(isolate->context(), *context));
+++      return ThrowRedeclarationError(isolate, name,
+++                                     RedeclarationType::kSyntaxError);
+++    }
++     DCHECK_EQ(NONE, attributes);
+++    DCHECK_EQ(VariableMode::kVar, mode);
+++    DCHECK_EQ(kCreatedInitialized, init_flag);
++ 
++     // Skip var re-declarations.
++     if (is_var) return ReadOnlyRoots(isolate).undefined_value();
++ 
+      if (index != Context::kNotFound) {
+        DCHECK(holder.is_identical_to(context));
+++      DCHECK(!context->IsElementTdzHole(index));
+        Context::Set(context, index, value, isolate);
+ +      Tagged<ScopeInfo> scope_info = context->scope_info();
+ +      int var_index = index - scope_info->ContextHeaderLength();
+@@ -17,7 +89,20 @@ index e3da91b80779270e86705756da411bee3778305a..a65096e9b2cbd173343f8370a3b48e6e
+        return ReadOnlyRoots(isolate).undefined_value();
+      }
+  
+-@@ -965,6 +973,14 @@ MaybeDirectHandle<Object> StoreLookupSlot(
++     object = Cast<JSObject>(holder);
+++    DCHECK(IsJSContextExtensionObject(*object));
++ 
++-  } else if (context->has_extension() && !is_debug_evaluate_in_module) {
+++  } else if (context->has_extension()) {
++     object = direct_handle(context->extension_object(), isolate);
++     DCHECK(IsJSContextExtensionObject(*object));
++-  } else if (context->scope_info()->HasContextExtensionSlot() &&
++-             !is_debug_evaluate_in_module) {
+++  } else if (context->scope_info()->HasContextExtensionSlot()) {
++     // Sloppy varblock and function contexts might not have an extension object
++     // yet. Sloppy eval will never have an extension object, as vars are hoisted
++     // out, and lets are known statically.
++@@ -965,6 +1003,14 @@ MaybeDirectHandle<Object> StoreLookupSlot(
+      }
+      if ((attributes & READ_ONLY) == 0) {
+        Context::Set(holder_context, index, value, isolate);
+diff --git a/patches/v8/test-inspector-debugger-evaluate-on-call-frame-redeclaration-expected.txt.patch b/patches/v8/test-inspector-debugger-evaluate-on-call-frame-redeclaration-expected.txt.patch
+new file mode 100644
+index 00000000..f5de0746
+--- /dev/null
++++ b/patches/v8/test-inspector-debugger-evaluate-on-call-frame-redeclaration-expected.txt.patch
+@@ -0,0 +1,73 @@
++diff --git a/test/inspector/debugger/evaluate-on-call-frame-redeclaration-expected.txt b/test/inspector/debugger/evaluate-on-call-frame-redeclaration-expected.txt
++new file mode 100644
++index 0000000000000000000000000000000000000000..963b214bcfc965d6e263ac4405d0c4fd790f1db2
++--- /dev/null
+++++ b/test/inspector/debugger/evaluate-on-call-frame-redeclaration-expected.txt
++@@ -0,0 +1,67 @@
+++Tests var and function declarations in Debugger.evaluateOnCallFrame.
+++
+++Running test: testModuleExportsRepro
+++function e1(){}: EvalError: Identifier 'e1' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function e2(){}: EvalError: Identifier 'e2' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function e3(){}: EvalError: Identifier 'e3' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++var e1 = 99;: EvalError: Identifier 'e1' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++{ function e1(){} }: EvalError: Identifier 'e1' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function c(){}: EvalError: Identifier 'c' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++var c = 99;: EvalError: Identifier 'c' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function fn(){}: EvalError: Identifier 'fn' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function localLet(){}: EvalError: Identifier 'localLet' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++var localLet = 99;: EvalError: Identifier 'localLet' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function localConst(){}: EvalError: Identifier 'localConst' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++var missing = 1;: EvalError: Identifier 'missing' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function missing(){}: EvalError: Identifier 'missing' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++var v = 11;: EvalError: Identifier 'v' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function v(){ return 42; }: EvalError: Identifier 'v' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++var localVar = 41;: EvalError: Identifier 'localVar' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function localVar(){ return 84; }: EvalError: Identifier 'localVar' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++after: {"e1":1,"e2":2,"e3":3,"c":4,"fn":"orig","v":10,"localLet":20,"localConst":30,"localVar":40}
+++
+++Running test: testModuleTopLevel
+++function e(){}: EvalError: Identifier 'e' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++var e;: EvalError: Identifier 'e' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++
+++Running test: testModuleImports
+++function dep1(){}: EvalError: Identifier 'dep1' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function dep2(){}: EvalError: Identifier 'dep2' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function depVar(){}: EvalError: Identifier 'depVar' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++var dep1;: EvalError: Identifier 'dep1' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++function ns(){}: EvalError: Identifier 'ns' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++after: {"dep1":1,"dep2":2,"depVar":3,"nsDep1":1}
+++
+++Running test: testModuleNestedEvalContexts
+++with ({}) { eval("var x = 1"); }: EvalError: Identifier 'x' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++with ({}) { eval("function e(){}"); }: EvalError: Identifier 'e' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++try { throw 1; } catch (_) { eval("var x = 1"); }: EvalError: Identifier 'x' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++{ let z = 1; (() => z); eval("var x = 1"); }: EvalError: Identifier 'x' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++let z = 1; (() => z); eval("var x = 1");: EvalError: Identifier 'x' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++let z = 1; (() => z); var x = 1;: EvalError: Identifier 'x' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++let z = 1; (() => z); function x(){}: EvalError: Identifier 'x' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++
+++Running test: testFunctionContextBindings
+++function c(){}: SyntaxError: Identifier 'c' has already been declared
+++var c = 9;: SyntaxError: Identifier 'c' has already been declared
+++function l(){}: SyntaxError: Identifier 'l' has already been declared
+++var l = 9;: SyntaxError: Identifier 'l' has already been declared
+++function v(){ return 77; }: ok (undefined)
+++var missing = 1;: EvalError: Identifier 'missing' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++runOuterBindings: {"c":1,"l":2,"vType":"function","vVal":77}
+++function l(){}: SyntaxError: Identifier 'l' has already been declared
+++function c(){}: SyntaxError: Identifier 'c' has already been declared
+++runOuterTdz: [123,456]
+++function a(){}: SyntaxError: Identifier 'a' has already been declared
+++function arguments(){}: SyntaxError: Identifier 'arguments' has already been declared
+++runNonSimpleParams: [null,0]
+++
+++Running test: testStrictEvalAndStaticBlock
+++function c(){}: SyntaxError: Identifier 'c' has already been declared
+++function l(){}: SyntaxError: Identifier 'l' has already been declared
+++var missing = 1;: EvalError: Identifier 'missing' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++strictEval: 1,2
+++function c(){}: SyntaxError: Identifier 'c' has already been declared
+++function l(){}: SyntaxError: Identifier 'l' has already been declared
+++var missing = 1;: EvalError: Identifier 'missing' cannot be declared with 'var' in current evaluation scope, consider trying 'let' instead
+++staticBlock: [1,2]
+diff --git a/patches/v8/test-inspector-debugger-evaluate-on-call-frame-redeclaration.js.patch b/patches/v8/test-inspector-debugger-evaluate-on-call-frame-redeclaration.js.patch
+new file mode 100644
+index 00000000..24ad1fe1
+--- /dev/null
++++ b/patches/v8/test-inspector-debugger-evaluate-on-call-frame-redeclaration.js.patch
+@@ -0,0 +1,251 @@
++diff --git a/test/inspector/debugger/evaluate-on-call-frame-redeclaration.js b/test/inspector/debugger/evaluate-on-call-frame-redeclaration.js
++new file mode 100644
++index 0000000000000000000000000000000000000000..8aa7d87c035d4e82dc7a21eb5e17dbe4496a51c1
++--- /dev/null
+++++ b/test/inspector/debugger/evaluate-on-call-frame-redeclaration.js
++@@ -0,0 +1,245 @@
+++// Copyright 2026 the V8 project authors. All rights reserved.
+++// Use of this source code is governed by a BSD-style license that can be
+++// found in the LICENSE file.
+++
+++const {contextGroup, Protocol} = InspectorTest.start(
+++    'Tests var and function declarations in Debugger.evaluateOnCallFrame.');
+++
+++function logResult(label, response) {
+++  if (response.result.exceptionDetails) {
+++    const desc = response.result.exceptionDetails.exception.description;
+++    InspectorTest.log(`${label}: ${desc.split('\n')[0]}`);
+++  } else {
+++    InspectorTest.log(
+++        `${label}: ok (${JSON.stringify(response.result.result.value)})`);
+++  }
+++}
+++
+++async function evalOnTopFrame(callFrameId, expression) {
+++  const response = await Protocol.Debugger.evaluateOnCallFrame({
+++    callFrameId,
+++    expression,
+++  });
+++  logResult(expression, response);
+++}
+++
+++InspectorTest.runAsyncTestSuite([
+++  async function testModuleExportsRepro() {
+++    await Protocol.Debugger.enable();
+++    contextGroup.addModule(
+++        `
+++      export let e1 = 1;
+++      export let e2 = 2;
+++      export let e3 = 3;
+++      export const c = 4;
+++      export function fn() { return 'orig'; }
+++      export var v = 10;
+++      let localLet = 20;
+++      const localConst = 30;
+++      var localVar = 40;
+++      function keepCaptured() { return [localLet, localConst, localVar]; }
+++      function f() { debugger; }
+++      f();
+++      globalThis.moduleExportsAfter = {
+++        e1, e2, e3, c, fn: fn(), v, localLet, localConst, localVar,
+++      };
+++    `,
+++        'mod-exports');
+++
+++    const {params: {callFrames: [{callFrameId}]}} =
+++        await Protocol.Debugger.oncePaused();
+++
+++    await evalOnTopFrame(callFrameId, 'function e1(){}');
+++    await evalOnTopFrame(callFrameId, 'function e2(){}');
+++    await evalOnTopFrame(callFrameId, 'function e3(){}');
+++    await evalOnTopFrame(callFrameId, 'var e1 = 99;');
+++    await evalOnTopFrame(callFrameId, '{ function e1(){} }');
+++    await evalOnTopFrame(callFrameId, 'function c(){}');
+++    await evalOnTopFrame(callFrameId, 'var c = 99;');
+++    await evalOnTopFrame(callFrameId, 'function fn(){}');
+++    await evalOnTopFrame(callFrameId, 'function localLet(){}');
+++    await evalOnTopFrame(callFrameId, 'var localLet = 99;');
+++    await evalOnTopFrame(callFrameId, 'function localConst(){}');
+++    await evalOnTopFrame(callFrameId, 'var missing = 1;');
+++    await evalOnTopFrame(callFrameId, 'function missing(){}');
+++    await evalOnTopFrame(callFrameId, 'var v = 11;');
+++    await evalOnTopFrame(callFrameId, 'function v(){ return 42; }');
+++    await evalOnTopFrame(callFrameId, 'var localVar = 41;');
+++    await evalOnTopFrame(callFrameId, 'function localVar(){ return 84; }');
+++
+++    await Protocol.Debugger.resume();
+++    const {result: {result: {value}}} = await Protocol.Runtime.evaluate({
+++      expression: 'JSON.stringify(globalThis.moduleExportsAfter)',
+++    });
+++    InspectorTest.log('after: ' + value);
+++  },
+++
+++  async function testModuleTopLevel() {
+++    contextGroup.addModule(
+++        `
+++      export let e = 1;
+++      debugger;
+++    `,
+++        'mod-toplevel');
+++
+++    const {params: {callFrames: [{callFrameId}]}} =
+++        await Protocol.Debugger.oncePaused();
+++    await evalOnTopFrame(callFrameId, 'function e(){}');
+++    await evalOnTopFrame(callFrameId, 'var e;');
+++    await Protocol.Debugger.resume();
+++  },
+++
+++  async function testModuleImports() {
+++    contextGroup.addModule(
+++        `
+++      export let dep1 = 1;
+++      export let dep2 = 2;
+++      export var depVar = 3;
+++    `,
+++        'mod-dep');
+++    contextGroup.addModule(
+++        `
+++      import {dep1, dep2, depVar} from 'mod-dep';
+++      import * as ns from 'mod-dep';
+++      function keepNs() { return ns.dep1; }
+++      function f() { debugger; }
+++      f();
+++      globalThis.moduleImportsAfter = {dep1, dep2, depVar, nsDep1: keepNs()};
+++    `,
+++        'mod-imports');
+++
+++    const {params: {callFrames: [{callFrameId}]}} =
+++        await Protocol.Debugger.oncePaused();
+++    await evalOnTopFrame(callFrameId, 'function dep1(){}');
+++    await evalOnTopFrame(callFrameId, 'function dep2(){}');
+++    await evalOnTopFrame(callFrameId, 'function depVar(){}');
+++    await evalOnTopFrame(callFrameId, 'var dep1;');
+++    await evalOnTopFrame(callFrameId, 'function ns(){}');
+++    await Protocol.Debugger.resume();
+++    const {result: {result: {value}}} = await Protocol.Runtime.evaluate({
+++      expression: 'JSON.stringify(globalThis.moduleImportsAfter)',
+++    });
+++    InspectorTest.log('after: ' + value);
+++  },
+++
+++  async function testModuleNestedEvalContexts() {
+++    contextGroup.addModule(
+++        `
+++      export let e = 1;
+++      function f() { debugger; }
+++      f();
+++    `,
+++        'mod-nested');
+++
+++    const {params: {callFrames: [{callFrameId}]}} =
+++        await Protocol.Debugger.oncePaused();
+++    await evalOnTopFrame(callFrameId, 'with ({}) { eval("var x = 1"); }');
+++    await evalOnTopFrame(callFrameId, 'with ({}) { eval("function e(){}"); }');
+++    await evalOnTopFrame(
+++        callFrameId, 'try { throw 1; } catch (_) { eval("var x = 1"); }');
+++    await evalOnTopFrame(
+++        callFrameId, '{ let z = 1; (() => z); eval("var x = 1"); }');
+++    await evalOnTopFrame(
+++        callFrameId, 'let z = 1; (() => z); eval("var x = 1");');
+++    await evalOnTopFrame(
+++        callFrameId, 'let z = 1; (() => z); var x = 1;');
+++    await evalOnTopFrame(
+++        callFrameId, 'let z = 1; (() => z); function x(){}');
+++    await Protocol.Debugger.resume();
+++  },
+++
+++  async function testFunctionContextBindings() {
+++    contextGroup.addScript(`
+++      function runOuterBindings() {
+++        const c = 1;
+++        let l = 2;
+++        var v = 3;
+++        function keep() { return [c, l, v]; }
+++        function f() { debugger; }
+++        f();
+++        return {c, l, vType: typeof v, vVal: v()};
+++      }
+++      function runOuterTdz() {
+++        (function f() { debugger; })();
+++        let l = 123;
+++        const c = 456;
+++        function keep() { return [l, c]; }
+++        return keep();
+++      }
+++      function runNonSimpleParams(a = (function f() { debugger; })()) {
+++        const keep = () => [a, arguments.length];
+++        return keep();
+++      }
+++    `);
+++
+++    {
+++      const paused = Protocol.Debugger.oncePaused();
+++      const run = Protocol.Runtime.evaluate(
+++          {expression: 'JSON.stringify(runOuterBindings())'});
+++      const {params: {callFrames: [{callFrameId}]}} = await paused;
+++      await evalOnTopFrame(callFrameId, 'function c(){}');
+++      await evalOnTopFrame(callFrameId, 'var c = 9;');
+++      await evalOnTopFrame(callFrameId, 'function l(){}');
+++      await evalOnTopFrame(callFrameId, 'var l = 9;');
+++      await evalOnTopFrame(callFrameId, 'function v(){ return 77; }');
+++      await evalOnTopFrame(callFrameId, 'var missing = 1;');
+++      await Protocol.Debugger.resume();
+++      const {result: {result: {value}}} = await run;
+++      InspectorTest.log('runOuterBindings: ' + value);
+++    }
+++
+++    {
+++      const paused = Protocol.Debugger.oncePaused();
+++      const run = Protocol.Runtime.evaluate(
+++          {expression: 'JSON.stringify(runOuterTdz())'});
+++      const {params: {callFrames: [{callFrameId}]}} = await paused;
+++      await evalOnTopFrame(callFrameId, 'function l(){}');
+++      await evalOnTopFrame(callFrameId, 'function c(){}');
+++      await Protocol.Debugger.resume();
+++      const {result: {result: {value}}} = await run;
+++      InspectorTest.log('runOuterTdz: ' + value);
+++    }
+++
+++    {
+++      const paused = Protocol.Debugger.oncePaused();
+++      const run = Protocol.Runtime.evaluate(
+++          {expression: 'JSON.stringify(runNonSimpleParams())'});
+++      const {params: {callFrames: [{callFrameId}]}} = await paused;
+++      await evalOnTopFrame(callFrameId, 'function a(){}');
+++      await evalOnTopFrame(callFrameId, 'function arguments(){}');
+++      await Protocol.Debugger.resume();
+++      const {result: {result: {value}}} = await run;
+++      InspectorTest.log('runNonSimpleParams: ' + value);
+++    }
+++  },
+++
+++  async function testStrictEvalAndStaticBlock() {
+++    {
+++      const paused = Protocol.Debugger.oncePaused();
+++      const run = Protocol.Runtime.evaluate({
+++        expression: `eval('"use strict"; const c = 1; let l = 2; (() => [c, l]); (function f() { debugger; })(); [c, l];').toString()`,
+++      });
+++      const {params: {callFrames: [{callFrameId}]}} = await paused;
+++      await evalOnTopFrame(callFrameId, 'function c(){}');
+++      await evalOnTopFrame(callFrameId, 'function l(){}');
+++      await evalOnTopFrame(callFrameId, 'var missing = 1;');
+++      await Protocol.Debugger.resume();
+++      const {result: {result: {value}}} = await run;
+++      InspectorTest.log('strictEval: ' + value);
+++    }
+++
+++    {
+++      const paused = Protocol.Debugger.oncePaused();
+++      const run = Protocol.Runtime.evaluate({
+++        expression: `(() => { let res; class C { static { const c = 1; let l = 2; (() => [c, l]); (function f() { debugger; })(); res = [c, l]; } } return JSON.stringify(res); })()`,
+++      });
+++      const {params: {callFrames: [{callFrameId}]}} = await paused;
+++      await evalOnTopFrame(callFrameId, 'function c(){}');
+++      await evalOnTopFrame(callFrameId, 'function l(){}');
+++      await evalOnTopFrame(callFrameId, 'var missing = 1;');
+++      await Protocol.Debugger.resume();
+++      const {result: {result: {value}}} = await run;
+++      InspectorTest.log('staticBlock: ' + value);
+++    }
+++  },
+++]);
+-- 
+2.43.0
+
