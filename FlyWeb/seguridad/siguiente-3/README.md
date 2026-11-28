@@ -1224,6 +1224,11 @@ configuración de Linux compila el código.
 
 ## Revisados y no aplicables
 
+- **8154 `e8ed7f27a7`** [M159] [bluetooth] (590483836, 591281473; main `64c594e1d5`, #1756108): uso tras liberar en
+  `FlossAdminClient` y `FlossLEScanClient` cuando `on_ready_` destruye el cliente (política que prohíbe Bluetooth).
+  **Solo ChromeOS:** Floss se compila en Linux (`device/bluetooth/BUILD.gn`), pero `floss::features::IsFlossEnabled()`
+  devuelve `false` fuera de `BUILDFLAG(IS_CHROMEOS)`, y la ruta del fallo pasa por `BluetoothPolicyHandler`, también de
+  ChromeOS. En Mac no existe. Nada que portar.
 - **8154 `65f6c4cb6`**: roll de ANGLE en M159 con un solo commit, `2ec7b6db14` «[M159] GL: Read the last row separately when
   a pack fills its buffer» (588202947, 551017142). Es una solución de ANGLE GL para drivers **Mali** (GLES), que solo se
   activa con ellos. **No aplica:** en Mac no hay Mali y WebGL va por Metal.
